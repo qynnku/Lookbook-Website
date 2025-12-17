@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import ChannelList from './ChannelList';
 import TopNav from './TopNav';
@@ -22,6 +22,29 @@ type StatisticsProps = {
 };
 
 const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
+  const [platform, setPlatform] = useState('all');
+  const [timeRange, setTimeRange] = useState('year');
+  const [metric, setMetric] = useState('views');
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch analytics data when filters change
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      setLoading(true);
+      try {
+        const data = await apiFetch(`/statistics/analytics?platform=${platform}&timeRange=${timeRange}&metric=${metric}`);
+        setAnalyticsData(data);
+      } catch (error) {
+        console.error('Failed to fetch analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, [platform, timeRange, metric]);
+
   return (
     <div className="min-h-screen flex flex-col bg-white font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Main Layout */}
@@ -50,36 +73,102 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
               <div className="flex flex-col gap-[30px] items-start w-[655.572px]">
                 {/* Post Engagement Chart */}
                 <div className="bg-white h-[374.874px] rounded-[20.826px] shadow-[1.829px_1.829px_54.86px_0px_rgba(6,29,34,0.1)] w-full p-[20px] relative">
-                  <div className="flex justify-between items-start mb-[20px]">
-                    <div></div>
-                    <div className="flex gap-[18px] items-center">
-                      <div className="flex gap-[9px] items-center">
-                        <div className="flex gap-[3.657px] items-center">
-                          <div className="bg-[#7037a5] rounded-[1.829px] w-[11.886px] h-[11.886px]" />
-                          <p className="font-['Plus_Jakarta_Sans',sans-serif] font-normal text-[12px] leading-[18px] text-[#061d22] tracking-[-0.0012px]">
-                            Instagram
-                          </p>
-                        </div>
-                        <div className="flex gap-[3.657px] items-center">
-                          <div className="bg-[#1a0330] rounded-[1.829px] w-[11.886px] h-[11.886px]" />
-                          <p className="font-['Plus_Jakarta_Sans',sans-serif] font-normal text-[12px] leading-[18px] text-[#061d22] tracking-[-0.0012px]">
-                            Facebook
-                          </p>
-                        </div>
+                  {/* Filter Controls */}
+                  <div className="flex gap-[12px] items-center mb-[20px]">
+                    {/* Nền tảng */}
+                    <div className="relative">
+                      <select
+                        value={platform}
+                        onChange={(e) => setPlatform(e.target.value)}
+                        className="border border-[rgba(128,128,128,0.5)] px-[11px] py-[6px] rounded-[14.629px] font-['Plus_Jakarta_Sans',sans-serif] font-normal text-[12px] leading-[18px] text-[#061d22] tracking-[-0.0012px] bg-white cursor-pointer appearance-none pr-[30px]"
+                      >
+                        <option value="all">Tất cả nền tảng</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="threads">Threads</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="youtube">YouTube</option>
+                      </select>
+                      <div className="absolute right-[8px] top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                          <path d="M1 1L6 6L11 1" stroke="#061d22" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
                       </div>
-                      <div className="border border-[rgba(128,128,128,0.5)] flex items-center justify-center px-[11px] py-[6px] rounded-[14.629px]">
-                        <p className="font-['Plus_Jakarta_Sans',sans-serif] font-normal text-[12px] leading-[18px] text-[#061d22] tracking-[-0.0012px]">
-                          Year
-                        </p>
+                    </div>
+
+                    {/* Thời gian */}
+                    <div className="relative">
+                      <select
+                        value={timeRange}
+                        onChange={(e) => setTimeRange(e.target.value)}
+                        className="border border-[rgba(128,128,128,0.5)] px-[11px] py-[6px] rounded-[14.629px] font-['Plus_Jakarta_Sans',sans-serif] font-normal text-[12px] leading-[18px] text-[#061d22] tracking-[-0.0012px] bg-white cursor-pointer appearance-none pr-[30px]"
+                      >
+                        <option value="7days">7 ngày qua</option>
+                        <option value="30days">30 ngày qua</option>
+                        <option value="3months">3 tháng qua</option>
+                        <option value="6months">6 tháng qua</option>
+                        <option value="year">1 năm qua</option>
+                        <option value="custom">Tùy chỉnh</option>
+                      </select>
+                      <div className="absolute right-[8px] top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                          <path d="M1 1L6 6L11 1" stroke="#061d22" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Lọc (Metric) */}
+                    <div className="relative">
+                      <select
+                        value={metric}
+                        onChange={(e) => setMetric(e.target.value)}
+                        className="border border-[rgba(128,128,128,0.5)] px-[11px] py-[6px] rounded-[14.629px] font-['Plus_Jakarta_Sans',sans-serif] font-normal text-[12px] leading-[18px] text-[#061d22] tracking-[-0.0012px] bg-white cursor-pointer appearance-none pr-[30px]"
+                      >
+                        <option value="views">Lượt xem</option>
+                        <option value="likes">Lượt thích</option>
+                        <option value="comments">Bình luận</option>
+                        <option value="shares">Chia sẻ</option>
+                        <option value="follows">Theo dõi</option>
+                        <option value="engagement">Tương tác</option>
+                        <option value="reach">Охват</option>
+                      </select>
+                      <div className="absolute right-[8px] top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                          <path d="M1 1L6 6L11 1" stroke="#061d22" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
                       </div>
                     </div>
                   </div>
                   
                   {/* Chart placeholder */}
                   <div className="flex items-center justify-center h-[280px] text-[#737373]">
-                    <p className="font-['Plus_Jakarta_Sans',sans-serif] text-[14px]">
-                      Biểu đồ phân tích lượt tương tác
-                    </p>
+                    {loading ? (
+                      <p className="font-['Plus_Jakarta_Sans',sans-serif] text-[14px]">Đang tải dữ liệu...</p>
+                    ) : analyticsData ? (
+                      <div className="w-full h-full p-4">
+                        <p className="font-['Plus_Jakarta_Sans',sans-serif] text-[12px] text-[#737373] mb-2">
+                          Hiển thị {
+                            metric === 'views' ? 'Lượt xem' :
+                            metric === 'likes' ? 'Lượt thích' :
+                            metric === 'comments' ? 'Bình luận' :
+                            metric === 'shares' ? 'Chia sẻ' :
+                            metric === 'follows' ? 'Theo dõi' :
+                            metric === 'engagement' ? 'Tương tác' : 'Охват'
+                          } - {platform === 'all' ? 'Tất cả nền tảng' : platform.charAt(0).toUpperCase() + platform.slice(1)} - {
+                            timeRange === '7days' ? '7 ngày qua' :
+                            timeRange === '30days' ? '30 ngày qua' :
+                            timeRange === '3months' ? '3 tháng qua' :
+                            timeRange === '6months' ? '6 tháng qua' :
+                            timeRange === 'year' ? '1 năm qua' : 'Tùy chỉnh'
+                          }
+                        </p>
+                        <div className="font-['Plus_Jakarta_Sans',sans-serif] text-[10px] text-[#a3a3a3]">
+                          Nền tảng: {Object.keys(analyticsData).filter(k => !['metric', 'timeRange'].includes(k)).join(', ')}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="font-['Plus_Jakarta_Sans',sans-serif] text-[14px]">Không có dữ liệu</p>
+                    )}
                   </div>
                 </div>
 

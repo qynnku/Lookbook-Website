@@ -343,37 +343,49 @@ app.delete('/api/lookbooks/:id', auth, async (req: Request, res: Response) => {
 
 // Get analytics data (engagement metrics by month)
 app.get('/api/statistics/analytics', auth, async (req: AuthRequest, res: Response) => {
-  // Mock data for Instagram and Facebook engagement
-  const data = {
-    instagram: [
-      { month: 'JAN', value: 1500 },
-      { month: 'FEB', value: 1800 },
-      { month: 'MAR', value: 2100 },
-      { month: 'APR', value: 1900 },
-      { month: 'MAY', value: 2300 },
-      { month: 'JUN', value: 2500 },
-      { month: 'JUL', value: 2200 },
-      { month: 'AUG', value: 1900 },
-      { month: 'SEP', value: 2000 },
-      { month: 'OCT', value: 2400 },
-      { month: 'NOV', value: 2600 },
-      { month: 'DEC', value: 2800 },
-    ],
-    facebook: [
-      { month: 'JAN', value: 1200 },
-      { month: 'FEB', value: 1400 },
-      { month: 'MAR', value: 1600 },
-      { month: 'APR', value: 1500 },
-      { month: 'MAY', value: 1700 },
-      { month: 'JUN', value: 1900 },
-      { month: 'JUL', value: 1800 },
-      { month: 'AUG', value: 1600 },
-      { month: 'SEP', value: 1700 },
-      { month: 'OCT', value: 1900 },
-      { month: 'NOV', value: 2100 },
-      { month: 'DEC', value: 2300 },
-    ],
+  const { platform = 'all', timeRange = 'year', metric = 'views' } = req.query;
+  
+  // Generate mock data based on filters
+  const generateData = (platform: string, multiplier: number) => {
+    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    
+    // Adjust data points based on time range
+    let dataPoints = months;
+    if (timeRange === '7days') {
+      dataPoints = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    } else if (timeRange === '30days') {
+      dataPoints = Array.from({ length: 30 }, (_, i) => `${i + 1}`);
+    } else if (timeRange === '3months') {
+      dataPoints = months.slice(0, 3);
+    } else if (timeRange === '6months') {
+      dataPoints = months.slice(0, 6);
+    }
+    
+    return dataPoints.map((label) => ({
+      label,
+      value: Math.floor(Math.random() * 2000 * multiplier) + 500,
+    }));
   };
+
+  let data: any = {};
+
+  if (platform === 'all') {
+    data = {
+      facebook: generateData('facebook', 1.2),
+      instagram: generateData('instagram', 1.5),
+      threads: generateData('threads', 0.8),
+      tiktok: generateData('tiktok', 2.0),
+      youtube: generateData('youtube', 1.0),
+    };
+  } else {
+    data = {
+      [platform as string]: generateData(platform as string, 1.0),
+    };
+  }
+
+  data.metric = metric;
+  data.timeRange = timeRange;
+  
   res.json(data);
 });
 
