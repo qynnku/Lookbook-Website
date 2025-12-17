@@ -6,6 +6,8 @@ import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
 import bcrypt from 'bcrypt';
+import { v2 as cloudinary } from 'cloudinary';
+import streamifier from 'streamifier';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -25,15 +27,41 @@ function setCache(key: string, data: any, ttlMs = 120_000) {
   cache.set(key, { data, expiry: Date.now() + ttlMs });
 }
 
-// Multer config for file uploads
-const storage = multer.diskStorage({
+// Multer config for file uploads (supports local or Cloudinary)
+const STORAGE_DRIVER = process.env.STORAGE_DRIVER || 'local';
+const useCloud = STORAGE_DRIVER === 'cloudinary';
+if (useCloud) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+}
+
+const disk = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
   },
 });
+const storage = useCloud ? multer.memoryStorage() : disk;
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+
+async function fileToUrl(file: Express.Multer.File, req: Request): Promise<string> {
+  if (useCloud) {
+    const folder = process.env.CLOUDINARY_FOLDER || 'lookbook';
+    return await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream({ folder }, (err, result) => {
+        if (err || !result) return reject(err || new Error('Upload failed'));
+        resolve(result.secure_url || result.url);
+      });
+      streamifier.createReadStream(file.buffer).pipe(uploadStream);
+    });
+  }
+  const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+  return new URL(`/uploads/${file.filename}`, base).toString();
+}
 
 app.use(cors());
 app.use(express.json());
@@ -163,11 +191,14 @@ app.get('/api/dashboard/channels', auth, async (req: AuthRequest, res: Response)
 });
 
 // --- Upload media ---
-app.post('/api/upload', auth, upload.single('file'), (req: Request, res: Response) => {
+app.post('/api/upload', auth, upload.single('file'), async (req: Request, res: Response) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
-  const url = new URL(`/uploads/${req.file.filename}`, base).toString();
-  res.json({ url });
+  try {
+    const url = await fileToUrl(req.file, req);
+    res.json({ url });
+  } catch (e) {
+    res.status(500).json({ error: 'Upload failed' });
+  }
 });
 
 // --- Posts ---
@@ -263,15 +294,14 @@ app.post('/api/lookbooks', auth, upload.fields([
   if (!name) return res.status(400).json({ error: 'Name is required' });
 
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-  const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
   const imageUrl = files?.image?.[0] 
-    ? new URL(`/uploads/${files.image[0].filename}`, base).toString() 
+    ? await fileToUrl(files.image[0], req)
     : null;
   const bannerUrl = files?.banner?.[0] 
-    ? new URL(`/uploads/${files.banner[0].filename}`, base).toString() 
+    ? await fileToUrl(files.banner[0], req)
     : null;
   const galleryImages = files?.gallery 
-    ? files.gallery.map(f => new URL(`/uploads/${f.filename}`, base).toString()).join(',')
+    ? (await Promise.all(files.gallery.map(f => fileToUrl(f, req)))).join(',')
     : null;
 
   const created = await prisma.lookbook.create({
@@ -302,10 +332,10 @@ app.put('/api/lookbooks/:id', auth, upload.fields([
   const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
   
   const imageUrl = files?.image?.[0] 
-    ? new URL(`/uploads/${files.image[0].filename}`, base).toString() 
+    ? await fileToUrl(files.image[0], req)
     : existing.imageUrl;
   const bannerUrl = files?.banner?.[0] 
-    ? new URL(`/uploads/${files.banner[0].filename}`, base).toString() 
+    ? await fileToUrl(files.banner[0], req)
     : existing.bannerUrl;
 
   // Handle gallery images
@@ -326,7 +356,8 @@ app.put('/api/lookbooks/:id', auth, upload.fields([
 
   // Add new images
   if (files?.gallery) {
-    const newImages = files.gallery.map(f => new URL(`/uploads/${f.filename}`, base).toString()).join(',');
+    const newImagesArr = await Promise.all(files.gallery.map(f => fileToUrl(f, req as any)));
+    const newImages = newImagesArr.join(',');
     imagesUrl = imagesUrl 
       ? `${imagesUrl},${newImages}`
       : newImages;
