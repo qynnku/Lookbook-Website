@@ -278,21 +278,21 @@ const ScheduleCalendar: React.FC<SchedulePostProps> = ({ onNavigate }) => {
 
             {/* Calendar */}
             <div className="mt-[30px]">
-            <div className="border border-[#737373] rounded-[16px] overflow-hidden">
+            <div className="border border-[#d4d4d4] rounded-[16px] overflow-hidden bg-white">
               {/* Days header */}
-              <div className="flex border-b border-[#737373] bg-[#1a1a1a]">
+              <div className="flex border-b border-[#d4d4d4] bg-white">
                 {daysOfWeek.map((day, idx) => {
                   const date = weekDates[idx];
                   return (
                     <div
                       key={day.label}
                       style={{ width: `${COLUMN_WIDTH}px` }}
-                      className={`flex flex-col gap-[10px] items-center justify-center py-[9px] border-[#737373] hover:bg-[#e6d9ff] transition-colors ${
+                      className={`flex flex-col gap-[10px] items-center justify-center py-[9px] border-[#d4d4d4] hover:bg-[#f3e8ff] transition-colors ${
                         idx > 0 ? 'border-l' : ''
                       }`}
                     >
-                      <p className="text-[16px] font-semibold text-[#9a9a9a]">{day.label}</p>
-                      <div className="bg-[#9a67ca] text-white text-[16px] font-semibold rounded-full w-[32px] h-[32px] flex items-center justify-center">
+                      <p className="text-[16px] font-semibold text-black">{day.label}</p>
+                      <div className="bg-[#7037a5] text-white text-[16px] font-semibold rounded-full w-[32px] h-[32px] flex items-center justify-center">
                         {date.getDate()}
                       </div>
                     </div>
@@ -301,14 +301,14 @@ const ScheduleCalendar: React.FC<SchedulePostProps> = ({ onNavigate }) => {
               </div>
 
               {/* Calendar grid */}
-              <div className="flex bg-[#0d0d0d] min-h-[517px]" style={{ width: `${COLUMN_WIDTH * 7}px` }}>
+              <div className="flex bg-white min-h-[517px]" style={{ width: `${COLUMN_WIDTH * 7}px` }}>
                 {weekDates.map((date, idx) => {
                   const dayPosts = getPostsForDate(date);
                   return (
                     <div
                       key={idx}
                       style={{ width: `${COLUMN_WIDTH}px` }}
-                      className={`relative bg-[#0d0d0d] border-[#737373] ${
+                      className={`relative bg-white border-[#d4d4d4] hover:bg-[#f9f5ff] transition-colors ${
                         idx > 0 ? 'border-l' : ''
                       }`}
                     >
