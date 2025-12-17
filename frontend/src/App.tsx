@@ -29,7 +29,7 @@ function App() {
     let cancelled = false;
     (async () => {
       try {
-        const resp = await apiFetch('/orders?page=1&pageSize=1&status=pending');
+        const resp = await apiFetch('/api/orders?page=1&pageSize=1&status=pending');
         if (!resp.ok) throw new Error('Failed to fetch pending count');
         const data = await resp.json();
         if (!cancelled) setPendingCount(data.total || 0);
