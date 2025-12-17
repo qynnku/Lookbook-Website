@@ -132,7 +132,7 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
                         <option value="shares">Chia sẻ</option>
                         <option value="follows">Theo dõi</option>
                         <option value="engagement">Tương tác</option>
-                        <option value="reach">Охват</option>
+                        <option value="reach">Tất cả</option>
                       </select>
                       <div className="absolute right-[8px] top-1/2 -translate-y-1/2 pointer-events-none">
                         <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
@@ -155,7 +155,7 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
                             metric === 'comments' ? 'Bình luận' :
                             metric === 'shares' ? 'Chia sẻ' :
                             metric === 'follows' ? 'Theo dõi' :
-                            metric === 'engagement' ? 'Tương tác' : 'Охват'
+                            metric === 'engagement' ? 'Tương tác' : 'Tất cả'
                           } - {platform === 'all' ? 'Tất cả nền tảng' : platform.charAt(0).toUpperCase() + platform.slice(1)} - {
                             timeRange === '7days' ? '7 ngày qua' :
                             timeRange === '30days' ? '30 ngày qua' :
