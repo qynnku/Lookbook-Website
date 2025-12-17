@@ -19,5 +19,15 @@ export function apiFetch(path: string, options: RequestInit = {}) {
   return fetch(`${API_BASE_URL}${normalizedPath}`, {
     ...options,
     headers,
+  }).then(async (resp) => {
+    // If token is invalid/expired, force logout and show login screen
+    if (resp.status === 401) {
+      try { localStorage.removeItem('token'); } catch {}
+      // Soft reload to allow App.tsx to render <Login />
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
+    }
+    return resp;
   });
 }
