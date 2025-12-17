@@ -51,6 +51,14 @@ const statusColors: Record<OrderStatus, string> = {
   cancelled: 'bg-[#ffe6e6] text-[#c53030]',
 };
 
+const statusHoverColors: Record<OrderStatus, string> = {
+  pending: 'hover:bg-[#ffe0e0] hover:text-[#c53030] cursor-pointer',
+  processing: 'hover:bg-[#d4e8ff] cursor-pointer',
+  shipped: 'hover:bg-[#d4fff0] cursor-pointer',
+  completed: 'hover:bg-[#d4fff8] cursor-pointer',
+  cancelled: 'hover:bg-[#ffc0c0] cursor-pointer',
+};
+
 const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
@@ -232,7 +240,7 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                       <div>{o.channel}</div>
                       <div>{new Date(o.createdAt).toLocaleDateString('vi-VN')}</div>
                       <div>
-                        <span className={`rounded-[12px] px-[10px] py-[4px] text-[12px] ${statusColors[o.status]}`}>
+                        <span className={`rounded-[12px] px-[10px] py-[4px] text-[12px] transition-all ${statusColors[o.status]} ${statusHoverColors[o.status]}`}>
                           {statusLabels[o.status]}
                         </span>
                       </div>
