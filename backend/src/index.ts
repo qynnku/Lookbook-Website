@@ -122,13 +122,40 @@ async function sendOTPEmail(to: string, otp: string, name: string): Promise<bool
     await transporter.sendMail({
       from: process.env.SMTP_USER,
       to,
-      subject: 'Xác nhận tài khoản Bonjour - Mã OTP',
+      subject: 'Xác nhận tài khoản BONJOUR - Mã OTP',
       html: `
-        <h2>Xin chào ${name}!</h2>
-        <p>Mã OTP xác nhận tài khoản của bạn là:</p>
-        <h1 style="color: #3772FF; letter-spacing: 2px;">${otp}</h1>
-        <p>Mã này sẽ hết hạn trong 10 phút.</p>
-        <p>Nếu bạn không yêu cầu xác nhận này, vui lòng bỏ qua email này.</p>
+        <div style="font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #f9fafb; padding: 40px 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 12px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h1 style="color: #1a0330; font-size: 24px; font-weight: 700; margin: 0 0 20px 0;">Chào mừng bạn đến với BONJOUR!</h1>
+            
+            <p style="color: #404040; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0;">
+              Cảm ơn bạn đã chọn BONJOUR — nơi giúp bạn sản xuất nội dung đa phương tiện đa nền tảng một cách dễ dàng và hiệu quả.
+            </p>
+            
+            <p style="color: #404040; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">
+              Để quy trình đăng ký tài khoản được an toàn, vui lòng điền chính xác mã OTP xác nhận tài khoản dưới đây:
+            </p>
+            
+            <div style="background-color: #f5f5f5; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0;">
+              <p style="color: #737373; font-size: 12px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px;">Mã xác nhận</p>
+              <p style="color: #3772ff; font-size: 40px; font-weight: 700; margin: 0; letter-spacing: 4px; font-family: 'Monaco', 'Courier New', monospace;">${otp}</p>
+            </div>
+            
+            <p style="color: #737373; font-size: 13px; margin: 16px 0; text-align: center;">
+              Mã này sẽ hết hạn trong <strong>10 phút</strong>. Vui lòng không chia sẻ mã này với bất kỳ ai.
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
+            
+            <p style="color: #737373; font-size: 13px; margin: 0;">
+              Nếu bạn không yêu cầu xác nhận này, vui lòng bỏ qua email này hoặc liên hệ với đội hỗ trợ của chúng tôi.
+            </p>
+          </div>
+          
+          <p style="color: #9a9a9a; font-size: 12px; text-align: center; margin-top: 24px;">
+            © 2025 BONJOUR. Tất cả các quyền được bảo lưu.
+          </p>
+        </div>
       `,
     });
     return true;
