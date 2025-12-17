@@ -71,6 +71,9 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate, pendingCount = 0, setPendin
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [counts, setCounts] = useState({ total: 0, completed: 0, processing: 0, pending: pendingCount });
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [paid, setPaid] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('Momo');
 
   const tokenEmail = getEmailFromToken();
 
@@ -117,25 +120,17 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate, pendingCount = 0, setPendin
     let cancelled = false;
     (async () => {
       try {
-        const statuses: (OrderStatus | 'all')[] = ['all', 'completed', 'processing', 'pending'];
-        const results = await Promise.all(statuses.map(async (s) => {
-          const params = new URLSearchParams({ page: '1', pageSize: '1' });
-          if (s !== 'all') params.append('status', s);
-          const resp = await apiFetch(`/orders?${params.toString()}`);
-          if (!resp.ok) throw new Error('Không thể tải thống kê đơn hàng');
-          const data = await resp.json();
-          return { key: s, total: data.total || 0 };
-        }));
-
+        const resp = await apiFetch('/orders/summary');
+        if (!resp.ok) throw new Error('Không thể tải thống kê đơn hàng');
+        const data = await resp.json();
         if (cancelled) return;
         setCounts({
-          total: results.find((r) => r.key === 'all')?.total || 0,
-          completed: results.find((r) => r.key === 'completed')?.total || 0,
-          processing: results.find((r) => r.key === 'processing')?.total || 0,
-          pending: results.find((r) => r.key === 'pending')?.total || 0,
+          total: data.total || 0,
+          completed: data.completed || 0,
+          processing: data.processing || 0,
+          pending: data.pending || 0,
         });
-        // Update parent pending count
-        setPendingCount?.(results.find((r) => r.key === 'pending')?.total || 0);
+        setPendingCount?.(data.pending || 0);
       } catch (err) {
         // Keep existing counts on failure
       }
@@ -151,6 +146,51 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate, pendingCount = 0, setPendin
   const filteredOrders = useMemo(() => orders, [orders]);
 
   const formatCount = (n: number) => (n > 99 ? '99+' : String(n));
+
+  async function refreshSummary() {
+    try {
+      const resp = await apiFetch('/orders/summary');
+      if (!resp.ok) return;
+      const data = await resp.json();
+      setCounts({
+        total: data.total || 0,
+        completed: data.completed || 0,
+        processing: data.processing || 0,
+        pending: data.pending || 0,
+      });
+      setPendingCount?.(data.pending || 0);
+    } catch {}
+  }
+
+  const openOrderModal = (o: Order) => {
+    setSelectedOrder(o);
+    setPaid(false);
+    setPaymentMethod('Momo');
+  };
+
+  const handleUpdateStatus = async (status: OrderStatus) => {
+    if (!selectedOrder) return;
+    try {
+      const resp = await apiFetch(`/orders/${selectedOrder.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+      if (!resp.ok) throw new Error('Cập nhật trạng thái thất bại');
+      const updated = await resp.json();
+      setOrders((prev) => prev.map((x) => (x.id === updated.id ? updated : x)).filter((x) => {
+        if (statusFilter === 'pending') return x.status === 'pending';
+        if (statusFilter === 'processing') return x.status === 'processing';
+        if (statusFilter === 'shipped') return x.status === 'shipped';
+        if (statusFilter === 'completed') return x.status === 'completed';
+        if (statusFilter === 'cancelled') return x.status === 'cancelled';
+        return true;
+      }));
+      await refreshSummary();
+      setSelectedOrder(null);
+    } catch (e: any) {
+      alert(e?.message || 'Có lỗi xảy ra');
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-['Plus_Jakarta_Sans',sans-serif]">
@@ -244,7 +284,9 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate, pendingCount = 0, setPendin
                     <div className="text-center text-[#c53030] text-[13px] py-[16px]">{error}</div>
                   )}
                   {!loading && !error && filteredOrders.map((o) => (
-                    <div key={o.id} className="grid grid-cols-7 items-center text-[13px] text-[#1f1f1f] px-[14px] py-[12px] border-t border-[#f0f0f0]">
+                    <div key={o.id} className="grid grid-cols-7 items-center text-[13px] text-[#1f1f1f] px-[14px] py-[12px] border-t border-[#f0f0f0] hover:bg-[#faf7ff]"
+                      onClick={() => o.status === 'pending' ? openOrderModal(o) : undefined}
+                    >
                       <div className="font-semibold text-[#1a0330]">#{o.code}</div>
                       <div>{o.customer}</div>
                       <div>{o.product}</div>
@@ -294,6 +336,82 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate, pendingCount = 0, setPendin
       </div>
 
       <FooterBar />
+
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center px-4 py-8 z-50">
+          <div className="bg-white rounded-[12px] shadow-lg w-full max-w-[720px] max-h-[90vh] overflow-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#d4d4d4]">
+              <h3 className="text-[18px] font-semibold">Thông tin đơn hàng #{selectedOrder.code}</h3>
+              <button onClick={() => setSelectedOrder(null)} className="text-[#737373] hover:text-black">Đóng</button>
+            </div>
+            <div className="px-6 py-4 grid grid-cols-2 gap-4 text-[14px]">
+              <div>
+                <div className="text-[#737373]">Khách hàng</div>
+                <div className="font-semibold">{selectedOrder.customer}</div>
+              </div>
+              <div>
+                <div className="text-[#737373]">Sản phẩm</div>
+                <div className="font-semibold">{selectedOrder.product}</div>
+              </div>
+              <div>
+                <div className="text-[#737373]">Kênh</div>
+                <div className="font-semibold">{selectedOrder.channel}</div>
+              </div>
+              <div>
+                <div className="text-[#737373]">Ngày</div>
+                <div className="font-semibold">{new Date(selectedOrder.createdAt).toLocaleString('vi-VN')}</div>
+              </div>
+              <div>
+                <div className="text-[#737373]">Trạng thái</div>
+                <div className={`inline-block rounded-[12px] px-[10px] py-[4px] text-[12px] ${statusColors[selectedOrder.status]}`}>
+                  {statusLabels[selectedOrder.status]}
+                </div>
+              </div>
+              <div>
+                <div className="text-[#737373]">Tổng</div>
+                <div className="font-semibold">{selectedOrder.total.toLocaleString('vi-VN')} đ</div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-[#f0f0f0]">
+              <div className="text-[14px] font-semibold mb-2">Thanh toán</div>
+              <div className="flex items-center gap-4 mb-3">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} />
+                  <span>Đã thanh toán</span>
+                </label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  disabled={!paid}
+                  className="border border-[#d4d4d4] rounded-[8px] px-3 py-2 text-[14px] disabled:opacity-50"
+                >
+                  <option value="Momo">Ví Momo</option>
+                  <option value="Bank">Ngân hàng liên kết</option>
+                  <option value="ZaloPay">Zalo Pay</option>
+                  <option value="Cash">Tiền mặt</option>
+                </select>
+              </div>
+              <p className="text-[12px] text-[#737373]">Ghi chú: Thông tin thanh toán chỉ để đối chiếu nội bộ.</p>
+            </div>
+
+            <div className="px-6 py-4 border-t border-[#d4d4d4] flex justify-end gap-3">
+              <button
+                onClick={() => handleUpdateStatus('cancelled')}
+                className="px-4 py-2 rounded-[8px] border border-[#c53030] text-[#c53030] hover:bg-[#ffe6e6]"
+              >
+                Hủy đơn hàng
+              </button>
+              <button
+                onClick={() => handleUpdateStatus('processing')}
+                className="px-4 py-2 rounded-[8px] bg-black text-white"
+              >
+                Xác nhận đơn hàng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
