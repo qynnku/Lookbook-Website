@@ -147,3 +147,6 @@ const TopNav: React.FC<TopNavProps> = ({ active = 'platform', pendingCount = 0 }
       </div>
     </div>
   );
+};
+
+export default TopNav;
