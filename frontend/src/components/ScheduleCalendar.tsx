@@ -325,12 +325,10 @@ const ScheduleCalendar: React.FC<SchedulePostProps> = ({ onNavigate }) => {
                           return (
                             <div
                               key={post.id}
-                              className={`bg-white rounded-[8px] shadow-[0px_5px_13.3px_0px_rgba(0,0,0,0.25)] w-[134px] ${
-                                post.status === 'DRAFT' ? 'bg-[#737373]' : 'bg-[#1a1a1a]'
-                              }`}
+                              className={`bg-white rounded-[8px] shadow-[0px_5px_13.3px_0px_rgba(0,0,0,0.25)] w-[134px] border border-[#e5e5e5]`}
                               style={{ marginTop: pIdx * 90 + 'px' }}
                             >
-                              <div className="bg-[#404040] flex items-center justify-between px-[7px] py-[4px] rounded-t-[8px]">
+                              <div className="bg-[#f9f5ff] flex items-center justify-between px-[7px] py-[4px] rounded-t-[8px]">
                                 <div className="flex items-center gap-[3.843px]">
                                   <img
                                     src={clockIcon}
@@ -338,9 +336,7 @@ const ScheduleCalendar: React.FC<SchedulePostProps> = ({ onNavigate }) => {
                                     className="w-[15.372px] h-[15.372px]"
                                   />
                                   <span
-                                    className={`text-[12px] ${
-                                      post.status === 'DRAFT' ? 'text-white' : 'text-white'
-                                    }`}
+                                    className={`text-[12px] text-black`}
                                   >
                                     {time}
                                   </span>
@@ -362,9 +358,7 @@ const ScheduleCalendar: React.FC<SchedulePostProps> = ({ onNavigate }) => {
 
                               <div className="flex flex-col gap-[10px] p-[12px]">
                                 <p
-                                  className={`text-[14px] leading-[22px] w-[122px] ${
-                                    post.status === 'DRAFT' ? 'text-white' : 'text-[#e5e5e5]'
-                                  }`}
+                                  className={`text-[14px] leading-[22px] w-[122px] text-black`}
                                 >
                                   {post.title}
                                 </p>
@@ -382,9 +376,7 @@ const ScheduleCalendar: React.FC<SchedulePostProps> = ({ onNavigate }) => {
                                 <div className="flex items-center gap-[5.764px]">
                                   <div className="w-[4px] h-[4px] bg-[#391060] rounded-full"></div>
                                   <span
-                                    className={`text-[12px] ${
-                                      post.status === 'DRAFT' ? 'text-[#f7eeff]' : 'text-[#391060]'
-                                    }`}
+                                    className={`text-[12px] text-[#7037a5]`}
                                   >
                                     {post.content?.includes('Story')
                                       ? 'Story'
