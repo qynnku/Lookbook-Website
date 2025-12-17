@@ -1,0 +1,100 @@
+// Prisma schema for Lookbook backend
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id    Int    @id @default(autoincrement())
+  name  String
+  email String @unique
+  role  String
+  brand Brand? @relation(fields: [brandId], references: [id])
+  brandId Int?
+}
+
+model Brand {
+  id        Int      @id @default(autoincrement())
+  name      String
+  avatarUrl String
+  likes     Int
+  followers Int
+  users     User[]
+  metrics   MetricSnapshot[]
+  tasks     WeeklyTask[]
+  channels  ChannelConnection[]
+  posts     Post[]
+  lookbooks Lookbook[]
+}
+
+model MetricSnapshot {
+  id                  Int      @id @default(autoincrement())
+  brandId             Int
+  date                DateTime
+  newReach            Int
+  postViews           Int
+  pageVisits          Int
+  contentScore        Int
+  changeVsYesterday   Float
+  brand               Brand    @relation(fields: [brandId], references: [id])
+}
+
+model WeeklyTask {
+  id        Int    @id @default(autoincrement())
+  brandId   Int
+  title     String
+  channel   String
+  completed Boolean
+  brand     Brand  @relation(fields: [brandId], references: [id])
+}
+
+model ChannelConnection {
+  id      Int    @id @default(autoincrement())
+  brandId Int
+  type    String
+  status  String
+  brand   Brand  @relation(fields: [brandId], references: [id])
+}
+
+model Post {
+  id         Int      @id @default(autoincrement())
+  brandId    Int
+  title      String
+  content    String
+  status     String
+  tags       String?
+  media      String?
+  platforms  String?
+  scheduledAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  brand      Brand    @relation(fields: [brandId], references: [id])
+}
+
+model Lookbook {
+  id          Int      @id @default(autoincrement())
+  brandId     Int
+  name        String
+  description String?
+  link        String?
+  imageUrl    String?
+  bannerUrl   String?
+  imagesUrl   String?  // Comma-separated URLs for gallery images
+  // Statistics
+  totalViewers    Int      @default(0)
+  facebookViews   Int      @default(0)
+  threadViews     Int      @default(0)
+  instagramViews  Int      @default(0)
+  newCustomerReach Int     @default(0)
+  postViews       Int      @default(0)
+  pageVisits      Int      @default(0)
+  contentScore    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  brand       Brand    @relation(fields: [brandId], references: [id])
+}
