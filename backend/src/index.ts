@@ -287,35 +287,40 @@ app.post('/api/lookbooks', auth, upload.fields([
   { name: 'banner', maxCount: 1 },
   { name: 'gallery', maxCount: 100 }
 ]), async (req: AuthRequest, res: Response) => {
-  const brandId = req.brandId;
-  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
-  
-  const { name, description, link } = req.body;
-  if (!name) return res.status(400).json({ error: 'Name is required' });
+  try {
+    const brandId = req.brandId;
+    if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+    
+    const { name, description, link } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name is required' });
 
-  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-  const imageUrl = files?.image?.[0] 
-    ? await fileToUrl(files.image[0], req)
-    : null;
-  const bannerUrl = files?.banner?.[0] 
-    ? await fileToUrl(files.banner[0], req)
-    : null;
-  const galleryImages = files?.gallery 
-    ? (await Promise.all(files.gallery.map(f => fileToUrl(f, req)))).join(',')
-    : null;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    const imageUrl = files?.image?.[0] 
+      ? await fileToUrl(files.image[0], req)
+      : null;
+    const bannerUrl = files?.banner?.[0] 
+      ? await fileToUrl(files.banner[0], req)
+      : null;
+    const galleryImages = files?.gallery 
+      ? (await Promise.all(files.gallery.map(f => fileToUrl(f, req)))).join(',')
+      : null;
 
-  const created = await prisma.lookbook.create({
-    data: {
-      brandId,
-      name,
-      description: description || null,
-      link: link || null,
-      imageUrl,
-      bannerUrl,
-      imagesUrl: galleryImages,
-    },
-  });
-  res.status(201).json(created);
+    const created = await prisma.lookbook.create({
+      data: {
+        brandId,
+        name,
+        description: description || null,
+        link: link || null,
+        imageUrl,
+        bannerUrl,
+        imagesUrl: galleryImages,
+      },
+    });
+    res.status(201).json(created);
+  } catch (error: any) {
+    console.error('Error creating lookbook:', error);
+    res.status(500).json({ error: error.message || 'Failed to create lookbook' });
+  }
 });
 
 app.put('/api/lookbooks/:id', auth, upload.fields([
@@ -323,58 +328,63 @@ app.put('/api/lookbooks/:id', auth, upload.fields([
   { name: 'banner', maxCount: 1 },
   { name: 'gallery', maxCount: 100 }
 ]), async (req: Request, res: Response) => {
-  const id = Number(req.params.id);
-  const existing = await prisma.lookbook.findUnique({ where: { id } });
-  if (!existing) return res.status(404).json({ error: 'Lookbook not found' });
+  try {
+    const id = Number(req.params.id);
+    const existing = await prisma.lookbook.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'Lookbook not found' });
 
-  const { name, description, link, removedGalleryImages } = req.body;
-  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-  const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
-  
-  const imageUrl = files?.image?.[0] 
-    ? await fileToUrl(files.image[0], req)
-    : existing.imageUrl;
-  const bannerUrl = files?.banner?.[0] 
-    ? await fileToUrl(files.banner[0], req)
-    : existing.bannerUrl;
+    const { name, description, link, removedGalleryImages } = req.body;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+    
+    const imageUrl = files?.image?.[0] 
+      ? await fileToUrl(files.image[0], req)
+      : existing.imageUrl;
+    const bannerUrl = files?.banner?.[0] 
+      ? await fileToUrl(files.banner[0], req)
+      : existing.bannerUrl;
 
-  // Handle gallery images
-  let imagesUrl = existing.imagesUrl || '';
-  
-  // Remove deleted images
-  if (removedGalleryImages) {
-    try {
-      const removedList = JSON.parse(removedGalleryImages);
-      const currentImages = imagesUrl.split(',').filter(url => url.trim());
-      imagesUrl = currentImages
-        .filter(url => !removedList.includes(url))
-        .join(',');
-    } catch (e) {
-      // If parsing fails, keep existing
+    // Handle gallery images
+    let imagesUrl = existing.imagesUrl || '';
+    
+    // Remove deleted images
+    if (removedGalleryImages) {
+      try {
+        const removedList = JSON.parse(removedGalleryImages);
+        const currentImages = imagesUrl.split(',').filter(url => url.trim());
+        imagesUrl = currentImages
+          .filter(url => !removedList.includes(url))
+          .join(',');
+      } catch (e) {
+        // If parsing fails, keep existing
+      }
     }
-  }
 
-  // Add new images
-  if (files?.gallery) {
-    const newImagesArr = await Promise.all(files.gallery.map(f => fileToUrl(f, req as any)));
-    const newImages = newImagesArr.join(',');
-    imagesUrl = imagesUrl 
-      ? `${imagesUrl},${newImages}`
-      : newImages;
-  }
+    // Add new images
+    if (files?.gallery) {
+      const newImagesArr = await Promise.all(files.gallery.map(f => fileToUrl(f, req as any)));
+      const newImages = newImagesArr.join(',');
+      imagesUrl = imagesUrl 
+        ? `${imagesUrl},${newImages}`
+        : newImages;
+    }
 
-  const updated = await prisma.lookbook.update({
-    where: { id },
-    data: {
-      name: name || existing.name,
-      description: description !== undefined ? description : existing.description,
-      link: link !== undefined ? link : existing.link,
-      imageUrl,
-      bannerUrl,
-      imagesUrl: imagesUrl || null,
-    },
-  });
-  res.json(updated);
+    const updated = await prisma.lookbook.update({
+      where: { id },
+      data: {
+        name: name || existing.name,
+        description: description !== undefined ? description : existing.description,
+        link: link !== undefined ? link : existing.link,
+        imageUrl,
+        bannerUrl,
+        imagesUrl: imagesUrl || null,
+      },
+    });
+    res.json(updated);
+  } catch (error: any) {
+    console.error('Error updating lookbook:', error);
+    res.status(500).json({ error: error.message || 'Failed to update lookbook' });
+  }
 });
 
 app.delete('/api/lookbooks/:id', auth, async (req: Request, res: Response) => {
