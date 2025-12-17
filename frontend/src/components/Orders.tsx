@@ -146,6 +146,8 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
 
   const filteredOrders = useMemo(() => orders, [orders]);
 
+  const formatCount = (n: number) => (n > 99 ? '99+' : String(n));
+
   return (
     <div className="min-h-screen flex flex-col bg-white font-['Plus_Jakarta_Sans',sans-serif]">
       <div className="flex-1 flex w-full">
@@ -204,11 +206,16 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                         <button
                           key={s}
                           onClick={() => setStatusFilter(s === 'all' ? 'all' : s)}
-                          className={`rounded-[20px] border px-[12px] py-[6px] text-[12px] transition-colors ${
+                          className={`relative rounded-[20px] border px-[12px] py-[6px] text-[12px] transition-colors ${
                             statusFilter === s ? 'bg-[#e5d7ff] border-[#9a67ca] text-[#1a0330]' : 'bg-white border-[#d4d4d4] text-[#404040] hover:bg-[#f5f5f5]'
-                          }`}
+                          } ${s === 'pending' ? 'pr-[28px]' : ''}`}
                         >
                           {s === 'all' ? 'Tất cả' : statusLabels[s as OrderStatus]}
+                          {s === 'pending' && counts.pending > 0 && (
+                            <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-[5px] rounded-full bg-[#e02424] text-white text-[11px] leading-[18px] text-center shadow">
+                              {formatCount(counts.pending)}
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>
