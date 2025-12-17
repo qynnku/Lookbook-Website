@@ -26,13 +26,18 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
-// --- Auth Middleware ---
-function auth(req: Request, res: Response, next: NextFunction) {
+// --- Auth Middleware (extract brandId from token) ---
+interface AuthRequest extends Request {
+  brandId?: number;
+}
+
+function auth(req: AuthRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'];
   if (!authHeader) return res.status(401).json({ error: 'No token' });
   const token = authHeader.split(' ')[1];
   try {
-    jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    req.brandId = decoded.brandId;
     next();
   } catch {
     res.status(401).json({ error: 'Invalid token' });
@@ -51,6 +56,16 @@ app.post('/api/signup', async (req: Request, res: Response) => {
     return res.status(409).json({ error: 'Email already exists' });
   }
   
+  // Create brand for new user
+  const brand = await prisma.brand.create({
+    data: {
+      name: name,
+      avatarUrl: '/images/default-avatar.png',
+      likes: 0,
+      followers: 0,
+    },
+  });
+  
   const hashedPassword = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
     data: {
@@ -58,11 +73,12 @@ app.post('/api/signup', async (req: Request, res: Response) => {
       password: hashedPassword,
       name,
       role: 'user',
+      brandId: brand.id,
     },
   });
   
-  const token = jwt.sign({ email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '1d' });
-  res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name } });
+  const token = jwt.sign({ email: user.email, role: user.role, brandId: brand.id }, JWT_SECRET, { expiresIn: '1d' });
+  res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, brandId: brand.id } });
 });
 
 // --- Login ---
@@ -82,14 +98,18 @@ app.post('/api/login', async (req: Request, res: Response) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
   
-  const token = jwt.sign({ email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '1d' });
-  res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
+  const token = jwt.sign({ email: user.email, role: user.role, brandId: user.brandId }, JWT_SECRET, { expiresIn: '1d' });
+  res.json({ token, user: { id: user.id, email: user.email, name: user.name, brandId: user.brandId } });
 });
 
 // --- Dashboard summary ---
-app.get('/api/dashboard/summary', auth, async (req: Request, res: Response) => {
-  const brand = await prisma.brand.findFirst();
+app.get('/api/dashboard/summary', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  
+  const brand = await prisma.brand.findUnique({ where: { id: brandId } });
   const metric = await prisma.metricSnapshot.findFirst({
+    where: { brandId },
     orderBy: { date: 'desc' },
   });
   if (!brand || !metric) return res.status(404).json({ error: 'No data' });
@@ -102,10 +122,10 @@ app.get('/api/dashboard/summary', auth, async (req: Request, res: Response) => {
 });
 
 // --- Weekly plan ---
-app.get('/api/dashboard/weekly-plan', auth, async (req: Request, res: Response) => {
-  const brand = await prisma.brand.findFirst();
-  if (!brand) return res.status(404).json({ error: 'No brand' });
-  const tasks = await prisma.weeklyTask.findMany({ where: { brandId: brand.id } });
+app.get('/api/dashboard/weekly-plan', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  const tasks = await prisma.weeklyTask.findMany({ where: { brandId } });
   res.json(tasks);
 });
 
@@ -122,10 +142,10 @@ app.patch('/api/dashboard/weekly-plan/:id', auth, async (req: Request, res: Resp
 });
 
 // --- Channels ---
-app.get('/api/dashboard/channels', auth, async (req: Request, res: Response) => {
-  const brand = await prisma.brand.findFirst();
-  if (!brand) return res.status(404).json({ error: 'No brand' });
-  const channels = await prisma.channelConnection.findMany({ where: { brandId: brand.id } });
+app.get('/api/dashboard/channels', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  const channels = await prisma.channelConnection.findMany({ where: { brandId } });
   res.json(channels);
 });
 
@@ -137,11 +157,11 @@ app.post('/api/upload', auth, upload.single('file'), (req: Request, res: Respons
 });
 
 // --- Posts ---
-app.get('/api/posts', auth, async (req: Request, res: Response) => {
-  const brand = await prisma.brand.findFirst();
-  if (!brand) return res.status(404).json({ error: 'No brand' });
+app.get('/api/posts', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
   const { status, tag } = req.query;
-  const where: any = { brandId: brand.id };
+  const where: any = { brandId };
   if (status) where.status = String(status).toUpperCase();
   if (tag) where.tags = { contains: String(tag) };
   const posts = await prisma.post.findMany({ where, orderBy: { updatedAt: 'desc' } });
@@ -149,23 +169,23 @@ app.get('/api/posts', auth, async (req: Request, res: Response) => {
 });
 
 // Get unique tags
-app.get('/api/posts/tags', auth, async (req: Request, res: Response) => {
-  const brand = await prisma.brand.findFirst();
-  if (!brand) return res.status(404).json({ error: 'No brand' });
-  const posts = await prisma.post.findMany({ where: { brandId: brand.id }, select: { tags: true } });
+app.get('/api/posts/tags', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  const posts = await prisma.post.findMany({ where: { brandId }, select: { tags: true } });
   const allTags = posts.map(p => p.tags).filter(Boolean).join(',').split(',').map(t => t.trim()).filter(Boolean);
   const uniqueTags = Array.from(new Set(allTags));
   res.json(uniqueTags);
 });
 
-app.post('/api/posts', auth, async (req: Request, res: Response) => {
-  const brand = await prisma.brand.findFirst();
-  if (!brand) return res.status(404).json({ error: 'No brand' });
+app.post('/api/posts', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
   const { title, content, status = 'DRAFT', tags, media, scheduledAt, platforms } = req.body;
   if (!title || !content) return res.status(400).json({ error: 'Missing title or content' });
   const created = await prisma.post.create({
     data: {
-      brandId: brand.id,
+      brandId,
       title,
       content,
       status,
@@ -200,11 +220,11 @@ app.put('/api/posts/:id', auth, async (req: Request, res: Response) => {
 });
 
 // --- Lookbooks ---
-app.get('/api/lookbooks', auth, async (req: Request, res: Response) => {
-  const brand = await prisma.brand.findFirst();
-  if (!brand) return res.status(404).json({ error: 'No brand' });
+app.get('/api/lookbooks', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
   const lookbooks = await prisma.lookbook.findMany({ 
-    where: { brandId: brand.id },
+    where: { brandId },
     orderBy: { updatedAt: 'desc' }
   });
   res.json(lookbooks);
@@ -221,9 +241,9 @@ app.post('/api/lookbooks', auth, upload.fields([
   { name: 'image', maxCount: 1 },
   { name: 'banner', maxCount: 1 },
   { name: 'gallery', maxCount: 100 }
-]), async (req: Request, res: Response) => {
-  const brand = await prisma.brand.findFirst();
-  if (!brand) return res.status(404).json({ error: 'No brand' });
+]), async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
   
   const { name, description, link } = req.body;
   if (!name) return res.status(400).json({ error: 'Name is required' });
@@ -241,7 +261,7 @@ app.post('/api/lookbooks', auth, upload.fields([
 
   const created = await prisma.lookbook.create({
     data: {
-      brandId: brand.id,
+      brandId,
       name,
       description: description || null,
       link: link || null,
