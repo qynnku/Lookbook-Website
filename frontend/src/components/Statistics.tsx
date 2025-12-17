@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Sidebar from './Sidebar';
 import ChannelList from './ChannelList';
 import TopNav from './TopNav';
@@ -22,8 +22,6 @@ type StatisticsProps = {
 };
 
 const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
-  const [activeTab, setActiveTab] = useState<'platform' | 'orders'>('platform');
-
   return (
     <div className="min-h-screen flex flex-col bg-white font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Main Layout */}
@@ -37,31 +35,6 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
         {/* Main Content */}
         <main className="flex-1 flex flex-col w-[1104px]">
           <TopNav />
-
-          {/* Tabs */}
-          <div className="border-b border-[#d4d4d4] flex h-[60px] items-center w-full">
-            <button
-              onClick={() => setActiveTab('platform')}
-              className={`flex items-center justify-center h-full px-[20px] w-[186px] border-r border-[#d4d4d4] transition-colors ${
-                activeTab === 'platform' ? 'bg-[#e5e5e5]' : 'bg-white hover:bg-[#f5f5f5]'
-              }`}
-            >
-              <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-black">
-                Nền tảng
-              </p>
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('orders')}
-              className={`flex items-center justify-center h-full px-[15px] w-[186px] border-r border-[#d4d4d4] transition-colors ${
-                activeTab === 'orders' ? 'bg-[#e5e5e5]' : 'bg-white hover:bg-[#f5f5f5]'
-              }`}
-            >
-              <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-black">
-                Đơn hàng
-              </p>
-            </button>
-          </div>
 
           {/* Content Area - Scrollable */}
           <div className="flex-1 overflow-y-auto bg-white">
