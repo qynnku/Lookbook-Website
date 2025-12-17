@@ -177,11 +177,11 @@ app.post('/api/signup', async (req: Request, res: Response) => {
     return res.status(409).json({ error: 'Email already exists' });
   }
 
-  // Create brand for new user
+  // Create brand for new user (no default avatar - user must upload later)
   const brand = await prisma.brand.create({
     data: {
       name,
-      avatarUrl: '/images/default-avatar.png',
+      avatarUrl: null,
       likes: 0,
       followers: 0,
     },
@@ -383,6 +383,17 @@ app.post('/api/login', async (req: Request, res: Response) => {
   
   const token = jwt.sign({ email: user.email, role: user.role, brandId: user.brandId }, JWT_SECRET, { expiresIn: '1d' });
   res.json({ token, user: { id: user.id, email: user.email, name: user.name, brandId: user.brandId } });
+});
+
+// --- Get current brand ---
+app.get('/api/brand', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  
+  const brand = await prisma.brand.findUnique({ where: { id: brandId } });
+  if (!brand) return res.status(404).json({ error: 'Brand not found' });
+  
+  res.json(brand);
 });
 
 // --- Dashboard summary ---
