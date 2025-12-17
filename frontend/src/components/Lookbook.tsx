@@ -101,15 +101,19 @@ const Lookbook: React.FC<LookbookPageProps> = ({ onNavigate, pendingCount = 0 })
         body: formData,
       });
 
-      if (!response.ok) throw new Error('Failed to create lookbook');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Create lookbook failed:', response.status, errorData);
+        throw new Error(errorData.error || 'Failed to create lookbook');
+      }
       
       // Reload lookbooks after creation
       setShowCreateModal(false);
       setNewLookbook({ name: '', description: '', link: '', image: null, banner: null, gallery: [] });
       loadLookbooks();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating lookbook:', error);
-      alert('Không thể tạo lookbook. Vui lòng thử lại.');
+      alert(`Không thể tạo lookbook: ${error.message || 'Vui lòng thử lại.'}`);
     }
   };
 
