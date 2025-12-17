@@ -165,7 +165,8 @@ app.get('/api/dashboard/channels', auth, async (req: AuthRequest, res: Response)
 // --- Upload media ---
 app.post('/api/upload', auth, upload.single('file'), (req: Request, res: Response) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const url = `http://localhost:${PORT}/uploads/${req.file.filename}`;
+  const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+  const url = new URL(`/uploads/${req.file.filename}`, base).toString();
   res.json({ url });
 });
 
@@ -262,14 +263,15 @@ app.post('/api/lookbooks', auth, upload.fields([
   if (!name) return res.status(400).json({ error: 'Name is required' });
 
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+  const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
   const imageUrl = files?.image?.[0] 
-    ? `http://localhost:${PORT}/uploads/${files.image[0].filename}` 
+    ? new URL(`/uploads/${files.image[0].filename}`, base).toString() 
     : null;
   const bannerUrl = files?.banner?.[0] 
-    ? `http://localhost:${PORT}/uploads/${files.banner[0].filename}` 
+    ? new URL(`/uploads/${files.banner[0].filename}`, base).toString() 
     : null;
   const galleryImages = files?.gallery 
-    ? files.gallery.map(f => `http://localhost:${PORT}/uploads/${f.filename}`).join(',')
+    ? files.gallery.map(f => new URL(`/uploads/${f.filename}`, base).toString()).join(',')
     : null;
 
   const created = await prisma.lookbook.create({
@@ -297,12 +299,13 @@ app.put('/api/lookbooks/:id', auth, upload.fields([
 
   const { name, description, link, removedGalleryImages } = req.body;
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+  const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
   
   const imageUrl = files?.image?.[0] 
-    ? `http://localhost:${PORT}/uploads/${files.image[0].filename}` 
+    ? new URL(`/uploads/${files.image[0].filename}`, base).toString() 
     : existing.imageUrl;
   const bannerUrl = files?.banner?.[0] 
-    ? `http://localhost:${PORT}/uploads/${files.banner[0].filename}` 
+    ? new URL(`/uploads/${files.banner[0].filename}`, base).toString() 
     : existing.bannerUrl;
 
   // Handle gallery images
@@ -323,7 +326,7 @@ app.put('/api/lookbooks/:id', auth, upload.fields([
 
   // Add new images
   if (files?.gallery) {
-    const newImages = files.gallery.map(f => `http://localhost:${PORT}/uploads/${f.filename}`).join(',');
+    const newImages = files.gallery.map(f => new URL(`/uploads/${f.filename}`, base).toString()).join(',');
     imagesUrl = imagesUrl 
       ? `${imagesUrl},${newImages}`
       : newImages;
@@ -720,5 +723,6 @@ app.delete('/api/orders/:id', auth, async (req: AuthRequest, res: Response) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
+  const base = process.env.PUBLIC_BASE_URL || `http://localhost:${PORT}`;
+  console.log(`Backend running. Public base: ${base}`);
 });
