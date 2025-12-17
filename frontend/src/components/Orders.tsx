@@ -30,6 +30,19 @@ const mockOrders: Order[] = [
   { id: '#OD-1017', customer: 'Bùi Nam', product: 'Gói Social Boost', date: '2025-12-09', status: 'processing', total: 1150000, channel: 'YouTube' },
 ];
 
+function getEmailFromToken(): string | null {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const payload = JSON.parse(atob(parts[1]));
+    return payload.email || null;
+  } catch {
+    return null;
+  }
+}
+
 const statusLabels: Record<OrderStatus, string> = {
   pending: 'Chờ xử lý',
   processing: 'Đang xử lý',
@@ -50,21 +63,25 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
 
+  const canViewData = getEmailFromToken() === 'admin@dottie.vn';
+
   const filteredOrders = useMemo(() => {
+    if (!canViewData) return [];
     return mockOrders.filter((o) => {
       const matchText = `${o.id} ${o.customer} ${o.product} ${o.channel}`.toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === 'all' ? true : o.status === statusFilter;
       return matchText && matchStatus;
     });
-  }, [search, statusFilter]);
+  }, [search, statusFilter, canViewData]);
 
   const counts = useMemo(() => {
+    if (!canViewData) return { total: 0, completed: 0, processing: 0, pending: 0 };
     const total = mockOrders.length;
     const completed = mockOrders.filter((o) => o.status === 'completed').length;
     const processing = mockOrders.filter((o) => o.status === 'processing').length;
     const pending = mockOrders.filter((o) => o.status === 'pending').length;
     return { total, completed, processing, pending };
-  }, []);
+  }, [canViewData]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-['Plus_Jakarta_Sans',sans-serif]">
@@ -162,7 +179,9 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                     </div>
                   ))}
                   {filteredOrders.length === 0 && (
-                    <div className="text-center text-[#737373] text-[13px] py-[16px]">Không có đơn nào</div>
+                    <div className="text-center text-[#737373] text-[13px] py-[16px]">
+                      {canViewData ? 'Không có đơn nào' : 'Tài khoản này chưa có dữ liệu đơn hàng'}
+                    </div>
                   )}
                 </div>
               </div>
