@@ -8,6 +8,9 @@
     "start": "prisma migrate deploy && node dist/index.js",
     "prisma": "prisma"
   },
+  "prisma": {
+    "seed": "ts-node --esm prisma/seed.ts"
+  },
   "dependencies": {
     "@prisma/client": "^5.0.0",
     "bcrypt": "^6.0.0",
