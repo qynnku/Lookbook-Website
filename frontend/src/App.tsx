@@ -6,9 +6,10 @@ import ScheduleCalendar from './components/ScheduleCalendar';
 import Lookbook from './components/Lookbook';
 import Livestream from './components/Livestream';
 import Statistics from './components/Statistics';
+import Orders from './components/Orders';
 import Login from './components/Login';
 
-type PageKey = 'overview' | 'create-post' | 'schedule' | 'lookbook' | 'livestream' | 'statistics';
+type PageKey = 'overview' | 'create-post' | 'schedule' | 'lookbook' | 'livestream' | 'statistics' | 'orders';
 
 function App() {
   const [loggedIn, setLoggedIn] = React.useState(() => !!localStorage.getItem('token'));
@@ -34,6 +35,9 @@ function App() {
     if (label === 'Thống kê') {
       setPage('statistics');
     }
+    if (label === 'Quản lý đơn hàng') {
+      setPage('orders');
+    }
   };
 
   if (!loggedIn) return <Login onLogin={handleLogin} />;
@@ -43,6 +47,7 @@ function App() {
   if (page === 'lookbook') return <Lookbook onNavigate={handleNavigate} />;
   if (page === 'livestream') return <Livestream onNavigate={handleNavigate} />;
   if (page === 'statistics') return <Statistics onNavigate={handleNavigate} />;
+  if (page === 'orders') return <Orders onNavigate={handleNavigate} />;
   return <OverviewDashboard onNavigate={handleNavigate} />;
 }
 
