@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import ChannelList from './ChannelList';
 import TopNav from './TopNav';
 import FooterBar from './FooterBar';
+import { apiFetch } from '../utils/api';
 
 // Suggestion/Notification images
 const imgSuggestion = "https://www.figma.com/api/mcp/asset/c1c09258-06cb-451b-a4b9-9403978ffe87";
