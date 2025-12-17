@@ -154,28 +154,28 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
                   
                   {/* Notification 1 */}
                   <div className="flex gap-[10px] items-center w-full">
-                    <div className="h-[68px] rounded-[8px] w-[62px]">
+                    <div className="h-[68px] rounded-[8px] w-[62px] flex-shrink-0">
                       <img src={imgNotification1} alt="" className="w-full h-full object-cover rounded-[8px]" />
                     </div>
-                    <div className="flex flex-col items-start w-[187px]">
-                      <p className="font-['Plus_Jakarta_Sans',sans-serif] font-normal text-[12px] leading-[18px] text-black tracking-[-0.0012px]">
+                    <div className="flex flex-col items-start flex-1 min-w-0">
+                      <p className="font-['Plus_Jakarta_Sans',sans-serif] font-normal text-[12px] leading-[18px] text-black tracking-[-0.0012px] w-full">
                         <span className="font-bold">Thảo Nguyên</span> và <span className="font-bold">100 tài khoản khác</span> đã bày tỏ cảm xúc về bài đăng của bạn
                       </p>
                     </div>
-                    <img src={logoInstagram} alt="Instagram" className="w-[26px] h-[26px]" />
+                    <img src={logoInstagram} alt="Instagram" className="w-[26px] h-[26px] flex-shrink-0" />
                   </div>
                   
                   {/* Notification 2 */}
-                  <div className="flex items-center justify-between w-full">
-                    <div className="h-[68px] rounded-[8px] w-[62px]">
+                  <div className="flex gap-[10px] items-center w-full">
+                    <div className="h-[68px] rounded-[8px] w-[62px] flex-shrink-0">
                       <img src={imgNotification2} alt="" className="w-full h-full object-cover rounded-[8px]" />
                     </div>
-                    <div className="flex flex-col items-start w-[187px]">
-                      <p className="font-['Plus_Jakarta_Sans',sans-serif] font-normal text-[12px] leading-[18px] text-black tracking-[-0.0012px]">
+                    <div className="flex flex-col items-start flex-1 min-w-0">
+                      <p className="font-['Plus_Jakarta_Sans',sans-serif] font-normal text-[12px] leading-[18px] text-black tracking-[-0.0012px] w-full">
                         <span className="font-bold">Nguyenpham_01</span>, <span className="font-bold">unni035</span> và <span className="font-bold">100 tài khoản khác</span> đã bày tỏ cảm xúc về bài đăng của bạn
                       </p>
                     </div>
-                    <img src={logoFacebook} alt="Facebook" className="w-[25px] h-[25px]" />
+                    <img src={logoFacebook} alt="Facebook" className="w-[25px] h-[25px] flex-shrink-0" />
                   </div>
                 </div>
 
@@ -184,7 +184,7 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
                   {/* Facebook */}
                   <div className="bg-white flex flex-col h-[227px] items-start px-[16px] py-[20px] rounded-[8px]">
                     <div className="flex flex-col gap-[24px] items-center justify-center w-full">
-                      <img src={logoFacebook} alt="Facebook" className="w-[65px] h-[66px]" />
+                      <img src={logoFacebook} alt="Facebook" className="w-[65px] h-[66px] object-contain" />
                       <div className="flex flex-col gap-[10px] items-start">
                         <div className="flex flex-col items-start">
                           <p className="font-['Plus_Jakarta_Sans',sans-serif] font-bold text-[20px] leading-[28px] text-black tracking-[0.004px]">
@@ -207,7 +207,9 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
                   {/* Threads */}
                   <div className="bg-white flex flex-col h-[227px] items-start px-[16px] py-[20px] rounded-[8px]">
                     <div className="flex flex-col gap-[24px] items-center justify-center w-full">
-                      <img src={logoThreads} alt="Threads" className="w-[66px] h-[66px]" />
+                      <div className="bg-[#080808] flex items-center justify-center p-[4px] rounded-[8px] w-[66px] h-[66px]">
+                        <img src={logoThreads} alt="Threads" className="w-full h-full object-contain" />
+                      </div>
                       <div className="flex flex-col gap-[10px] items-start">
                         <div className="flex flex-col items-start">
                           <p className="font-['Plus_Jakarta_Sans',sans-serif] font-bold text-[20px] leading-[28px] text-black tracking-[0.004px]">
@@ -230,7 +232,7 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
                   {/* Instagram */}
                   <div className="bg-white flex flex-col h-[227px] items-start px-[16px] py-[20px] rounded-[8px]">
                     <div className="flex flex-col gap-[24px] items-center justify-center w-full">
-                      <img src={logoInstagram} alt="Instagram" className="w-[65px] h-[65px]" />
+                      <img src={logoInstagram} alt="Instagram" className="w-[65px] h-[65px] object-contain" />
                       <div className="flex flex-col gap-[10px] items-start">
                         <div className="flex flex-col items-start">
                           <p className="font-['Plus_Jakarta_Sans',sans-serif] font-bold text-[20px] leading-[28px] text-black tracking-[0.004px]">
