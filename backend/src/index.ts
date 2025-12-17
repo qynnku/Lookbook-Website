@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
+import bcrypt from 'bcrypt';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -38,15 +39,51 @@ function auth(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-// --- Login (fake) ---
+// --- Signup ---
+app.post('/api/signup', async (req: Request, res: Response) => {
+  const { email, password, name } = req.body;
+  if (!email || !password || !name) {
+    return res.status(400).json({ error: 'Missing email, password, or name' });
+  }
+  
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    return res.status(409).json({ error: 'Email already exists' });
+  }
+  
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const user = await prisma.user.create({
+    data: {
+      email,
+      password: hashedPassword,
+      name,
+      role: 'user',
+    },
+  });
+  
+  const token = jwt.sign({ email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '1d' });
+  res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name } });
+});
+
+// --- Login ---
 app.post('/api/login', async (req: Request, res: Response) => {
   const { email, password } = req.body;
-  // Only one seeded user
-  if (email === 'admin@dottie.vn' && password === 'bonjour123') {
-    const token = jwt.sign({ email, role: 'admin' }, JWT_SECRET, { expiresIn: '1d' });
-    return res.json({ token });
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Missing email or password' });
   }
-  res.status(401).json({ error: 'Invalid credentials' });
+  
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+  
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+  if (!isPasswordValid) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+  
+  const token = jwt.sign({ email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '1d' });
+  res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
 });
 
 // --- Dashboard summary ---
