@@ -23,9 +23,10 @@ const menu = [
 type SidebarProps = {
   activeLabel?: string;
   onSelect?: (label: string) => void;
+  pendingCount?: number;
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ activeLabel = 'Tổng quan', onSelect }) => (
+const Sidebar: React.FC<SidebarProps> = ({ activeLabel = 'Tổng quan', onSelect, pendingCount = 0 }) => (
   <div className="flex flex-col gap-[10px] items-center px-0 py-[18px] w-full">
     <div className="bg-white flex items-center px-[40px] py-0 w-full">
       <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-[#404040]">
@@ -37,7 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeLabel = 'Tổng quan', onSelect
         <button
           key={item.label}
           onClick={() => onSelect?.(item.label)}
-          className={`flex gap-[10px] items-center px-[12px] py-[10px] rounded-[10px] w-full text-left transition-colors duration-300 ${
+          className={`relative flex gap-[10px] items-center px-[12px] py-[10px] rounded-[10px] w-full text-left transition-colors duration-300 ${
             item.label === activeLabel
               ? 'bg-[#fbf7ff] border border-black font-["Plus_Jakarta_Sans",sans-serif] font-semibold text-[14px] leading-[22px] text-[#1a0330]'
               : 'font-["Plus_Jakarta_Sans",sans-serif] font-normal text-[14px] leading-[22px] text-[#1a0330] hover:bg-[#f5f5f5]'
@@ -47,6 +48,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeLabel = 'Tổng quan', onSelect
             <img src={item.icon} alt="" className="w-full h-full" />
           </div>
           <span>{item.label}</span>
+          {item.label === 'Quản lý đơn hàng' && pendingCount > 0 && (
+            <span className="absolute top-[-6px] right-[-6px] min-w-[18px] h-[18px] px-[5px] rounded-full bg-[#e02424] text-white text-[11px] leading-[18px] text-center shadow">
+              {pendingCount > 99 ? '99+' : pendingCount}
+            </span>
+          )}
         </button>
       ))}
     </div>

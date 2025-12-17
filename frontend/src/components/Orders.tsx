@@ -153,11 +153,11 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
       <div className="flex-1 flex w-full">
         <aside className="w-[336px] bg-white border-r border-[#d4d4d4] flex flex-col">
           <ChannelList />
-          <Sidebar activeLabel="Quản lý đơn hàng" onSelect={onNavigate} />
+          <Sidebar activeLabel="Quản lý đơn hàng" onSelect={onNavigate} pendingCount={counts.pending} />
         </aside>
 
         <main className="flex-1 flex flex-col w-[1104px]">
-          <TopNav active="orders" />
+          <TopNav active="orders" pendingCount={counts.pending} />
 
           <div className="flex-1 overflow-y-auto bg-white">
             <div className="flex flex-col items-center pb-[30px] pt-[10px] px-0 w-full">
