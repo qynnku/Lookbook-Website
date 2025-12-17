@@ -343,50 +343,69 @@ app.delete('/api/lookbooks/:id', auth, async (req: Request, res: Response) => {
 
 // Get analytics data (engagement metrics by month)
 app.get('/api/statistics/analytics', auth, async (req: AuthRequest, res: Response) => {
-  const { platform = 'all', timeRange = 'year', metric = 'views' } = req.query;
-  
-  // Generate mock data based on filters
-  const generateData = (platform: string, multiplier: number) => {
-    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    
-    // Adjust data points based on time range
-    let dataPoints = months;
-    if (timeRange === '7days') {
-      dataPoints = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    } else if (timeRange === '30days') {
-      dataPoints = Array.from({ length: 30 }, (_, i) => `${i + 1}`);
-    } else if (timeRange === '3months') {
-      dataPoints = months.slice(0, 3);
-    } else if (timeRange === '6months') {
-      dataPoints = months.slice(0, 6);
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { platform = 'all', timeRange = 'year', metric = 'views' } = req.query as any;
+
+  // Date range
+  const now = new Date();
+  let start = new Date(now);
+  const rangeKey = String(timeRange);
+  if (rangeKey === '7days') start.setDate(now.getDate() - 6);
+  else if (rangeKey === '30days') start.setDate(now.getDate() - 29);
+  else if (rangeKey === '3months') start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  else if (rangeKey === '6months') start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  else start = new Date(now.getFullYear(), now.getMonth() - 11, 1); // year
+
+  const platforms = ['facebook', 'instagram', 'threads', 'tiktok', 'youtube'];
+  const metricKey = String(metric) as keyof { views: number };
+
+  // Helper: bucket label
+  const fmtDay = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+  const fmtMonth = (d: Date) => d.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+  const isDaily = rangeKey === '7days' || rangeKey === '30days';
+
+  // Build list of target platforms
+  const targetPlatforms = platform === 'all' ? platforms : [String(platform)];
+
+  // Fetch once for all platforms and aggregate in memory
+  const all = await prisma.platformStat.findMany({
+    where: { brandId, platform: { in: targetPlatforms }, date: { gte: start, lte: now } },
+    orderBy: { date: 'asc' },
+  });
+
+  const result: any = {};
+  for (const p of targetPlatforms) {
+    const rows = all.filter(r => r.platform === p);
+    const buckets: Record<string, number> = {};
+    for (const r of rows) {
+      const label = isDaily ? fmtDay(new Date(r.date)) : fmtMonth(new Date(r.date));
+      const value = (r as any)[metricKey] ?? 0;
+      buckets[label] = (buckets[label] || 0) + value;
     }
-    
-    return dataPoints.map((label) => ({
-      label,
-      value: Math.floor(Math.random() * 2000 * multiplier) + 500,
-    }));
-  };
-
-  let data: any = {};
-
-  if (platform === 'all') {
-    data = {
-      facebook: generateData('facebook', 1.2),
-      instagram: generateData('instagram', 1.5),
-      threads: generateData('threads', 0.8),
-      tiktok: generateData('tiktok', 2.0),
-      youtube: generateData('youtube', 1.0),
-    };
-  } else {
-    data = {
-      [platform as string]: generateData(platform as string, 1.0),
-    };
+    // Map to array keeping chronological label order
+    const labelsOrdered: string[] = [];
+    if (isDaily) {
+      const days = rangeKey === '7days' ? 7 : 30;
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        labelsOrdered.push(fmtDay(d));
+      }
+    } else {
+      const months = rangeKey === '3months' ? 3 : rangeKey === '6months' ? 6 : 12;
+      for (let i = months - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        labelsOrdered.push(fmtMonth(d));
+      }
+    }
+    result[p] = labelsOrdered.map(l => ({ label: l, value: Math.round(buckets[l] || 0) }));
   }
 
-  data.metric = metric;
-  data.timeRange = timeRange;
-  
-  res.json(data);
+  result.metric = metricKey;
+  result.timeRange = rangeKey;
+  res.json(result);
 });
 
 // Get business performance data
@@ -408,26 +427,17 @@ app.get('/api/statistics/performance', auth, async (req: AuthRequest, res: Respo
 
 // Get follower counts for all platforms
 app.get('/api/statistics/followers', auth, async (req: AuthRequest, res: Response) => {
-  const data = [
-    {
-      platform: 'facebook',
-      count: 11100,
-      growth: 1.2,
-      label: 'Lượt theo dõi',
-    },
-    {
-      platform: 'threads',
-      count: 11100,
-      growth: 1.2,
-      label: 'Lượt theo dõi',
-    },
-    {
-      platform: 'instagram',
-      count: 11100,
-      growth: 1.2,
-      label: 'Lượt theo dõi',
-    },
-  ];
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  const platforms = ['facebook', 'instagram', 'threads', 'tiktok', 'youtube'];
+  const data: any[] = [];
+  for (const p of platforms) {
+    const latest = await prisma.followerSnapshot.findFirst({ where: { brandId, platform: p }, orderBy: { date: 'desc' } });
+    const prev = await prisma.followerSnapshot.findFirst({ where: { brandId, platform: p, date: { lt: latest?.date || new Date() } }, orderBy: { date: 'desc' } });
+    const count = latest?.followers || 0;
+    const growth = prev && prev.followers ? ((count - prev.followers) / prev.followers) * 100 : 0;
+    data.push({ platform: p, count, growth: Math.round(growth * 10) / 10, label: 'Lượt theo dõi' });
+  }
   res.json(data);
 });
 

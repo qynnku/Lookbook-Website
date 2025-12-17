@@ -21,3 +21,20 @@
 
 - API runs at http://localhost:4000
 - Default login: `admin@dottie.vn` / `bonjour123`
+
+## Statistics data model
+
+This backend seeds a realistic, cross-linked dataset for charts:
+
+- `PlatformStat` (daily per platform): `views`, `likes`, `comments`, `shares`, `follows`, `engagement`, `reach` for the last 365 days across Facebook/Instagram/Threads/TikTok/YouTube.
+- `FollowerSnapshot` (monthly per platform): follower counts for the last 12 months with realistic growth.
+
+APIs aggregate these tables on-the-fly based on `platform`, `timeRange`, and `metric` query params.
+
+If you changed the schema, run generate/migrate again:
+
+```sh
+npx prisma generate
+npx prisma migrate dev --name add_stats_models
+npx ts-node prisma/seed.ts
+```

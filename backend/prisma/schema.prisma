@@ -32,6 +32,8 @@ model Brand {
   channels  ChannelConnection[]
   posts     Post[]
   lookbooks Lookbook[]
+  platformStats PlatformStat[]
+  followerSnapshots FollowerSnapshot[]
 }
 
 model MetricSnapshot {
@@ -99,4 +101,34 @@ model Lookbook {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   brand       Brand    @relation(fields: [brandId], references: [id])
+}
+
+// Daily per-platform metrics to power Statistics charts
+model PlatformStat {
+  id        Int      @id @default(autoincrement())
+  brandId   Int
+  platform  String   // facebook | instagram | threads | tiktok | youtube
+  date      DateTime
+  views     Int      @default(0)
+  likes     Int      @default(0)
+  comments  Int      @default(0)
+  shares    Int      @default(0)
+  follows   Int      @default(0)
+  engagement Int     @default(0)
+  reach     Int      @default(0)
+  brand     Brand    @relation(fields: [brandId], references: [id])
+
+  @@index([brandId, platform, date])
+}
+
+// Monthly follower snapshots per platform
+model FollowerSnapshot {
+  id        Int      @id @default(autoincrement())
+  brandId   Int
+  platform  String
+  date      DateTime
+  followers Int
+  brand     Brand    @relation(fields: [brandId], references: [id])
+
+  @@index([brandId, platform, date])
 }

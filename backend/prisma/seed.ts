@@ -9,6 +9,9 @@ async function main() {
   await prisma.metricSnapshot.deleteMany();
   await prisma.weeklyTask.deleteMany();
   await prisma.channelConnection.deleteMany();
+  // New stats tables
+  try { await prisma.platformStat.deleteMany(); } catch {}
+  try { await prisma.followerSnapshot.deleteMany(); } catch {}
   await prisma.user.deleteMany();
   await prisma.brand.deleteMany();
 
@@ -135,6 +138,90 @@ async function main() {
       contentScore: 8950,
     },
   });
+
+  // Seed Platform daily stats (last 365 days)
+  const platforms = ['facebook', 'instagram', 'threads', 'tiktok', 'youtube'];
+  const today = new Date();
+  const days = 365;
+  const statsData: any[] = [];
+
+  // Base multipliers per platform for realism
+  const base: Record<string, number> = {
+    facebook: 1.2,
+    instagram: 1.5,
+    threads: 0.8,
+    tiktok: 2.1,
+    youtube: 1.0,
+  };
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dayOfWeek = d.getDay(); // 0 Sun .. 6 Sat
+
+    // Light weekend dip
+    const weekendFactor = (dayOfWeek === 0 || dayOfWeek === 6) ? 0.85 : 1;
+
+    for (const p of platforms) {
+      const m = base[p];
+      // Core signals with some correlation
+      const views = Math.floor((800 + Math.random() * 1200) * m * weekendFactor);
+      const reach = Math.floor(views * (0.65 + Math.random() * 0.25));
+      const likes = Math.floor(views * (0.05 + Math.random() * 0.05));
+      const comments = Math.floor(likes * (0.15 + Math.random() * 0.25));
+      const shares = Math.floor(likes * (0.1 + Math.random() * 0.2));
+      const follows = Math.floor((likes + shares) * (0.02 + Math.random() * 0.06));
+      const engagement = likes + comments + shares;
+
+      // Spikes on days with scheduled/published posts (from the small mock set)
+      let spike = 1;
+      if (i % 30 === 0 || i % 45 === 0) spike = 1.35 + Math.random() * 0.4;
+
+      statsData.push({
+        brandId: brand.id,
+        platform: p,
+        date: d,
+        views: Math.floor(views * spike),
+        likes: Math.floor(likes * spike),
+        comments: Math.floor(comments * spike),
+        shares: Math.floor(shares * spike),
+        follows: Math.floor(follows * spike),
+        engagement: Math.floor(engagement * spike),
+        reach: Math.floor(reach * spike),
+      });
+    }
+  }
+
+  // Bulk insert in chunks to avoid parameter limits
+  const chunkSize = 1000;
+  for (let i = 0; i < statsData.length; i += chunkSize) {
+    await prisma.platformStat.createMany({ data: statsData.slice(i, i + chunkSize) });
+  }
+
+  // Seed follower snapshots (monthly, last 12 months)
+  const followerData: any[] = [];
+  for (let mIdx = 11; mIdx >= 0; mIdx--) {
+    const monthDate = new Date(today.getFullYear(), today.getMonth() - mIdx, 1);
+    for (const p of platforms) {
+      const baseStart: Record<string, number> = {
+        facebook: 9000,
+        instagram: 11000,
+        threads: 6000,
+        tiktok: 13000,
+        youtube: 8000,
+      };
+      const growthPerMonth: Record<string, number> = {
+        facebook: 250,
+        instagram: 380,
+        threads: 120,
+        tiktok: 500,
+        youtube: 180,
+      };
+      const followers = Math.floor(baseStart[p] + growthPerMonth[p] * (12 - mIdx) * (0.9 + Math.random() * 0.2));
+      followerData.push({ brandId: brand.id, platform: p, date: monthDate, followers });
+    }
+  }
+  await prisma.followerSnapshot.createMany({ data: followerData });
 
   console.log('Seeding completed successfully!');
   console.log('Brand:', brand);
