@@ -5,17 +5,17 @@ import TopNav from './TopNav';
 import FooterBar from './FooterBar';
 
 // Suggestion/Notification images
-const imgSuggestion = "https://www.figma.com/api/mcp/asset/c6a426bd-77d0-483a-b3da-96eacf154871";
-const imgNotification1 = "https://www.figma.com/api/mcp/asset/87767cc8-b7b8-48be-8aa9-02f72cfe1ab4";
-const imgNotification2 = "https://www.figma.com/api/mcp/asset/872ec0d4-de62-4760-8a15-6ba77028621a";
+const imgSuggestion = "https://www.figma.com/api/mcp/asset/c1c09258-06cb-451b-a4b9-9403978ffe87";
+const imgNotification1 = "https://www.figma.com/api/mcp/asset/e0a6a52a-b49b-41fb-bac6-a33ac4643f97";
+const imgNotification2 = "https://www.figma.com/api/mcp/asset/6a7603b0-1be6-497d-b5ff-e0e5d6d5c518";
 
 // Social media logos
-const logoInstagram = "https://www.figma.com/api/mcp/asset/dcfdee23-0f91-4dfc-99a6-4575ee0c08a0";
-const logoFacebook = "https://www.figma.com/api/mcp/asset/dcab943f-27c5-4ea7-9904-bcf91efebb48";
-const logoThreads = "https://www.figma.com/api/mcp/asset/6ac25568-db6f-4ffb-a848-64d920568ea9";
+const logoInstagram = "https://www.figma.com/api/mcp/asset/ee2b4d05-71b0-4df4-93a0-ce1edbd96483";
+const logoFacebook = "https://www.figma.com/api/mcp/asset/5b45c4c2-ff6b-496b-96f9-1ce1e17f0b99";
+const logoThreads = "https://www.figma.com/api/mcp/asset/84ede330-13ad-449c-8276-ead08790ef81";
 
 // Arrow icon
-const iconArrowUp = "https://www.figma.com/api/mcp/asset/34117fe0-200a-4969-ab87-f3309a6f7693";
+const iconArrowUp = "https://www.figma.com/api/mcp/asset/6955eff9-cf2b-4e2d-9884-be2fbf252cf0";
 
 type StatisticsProps = {
   onNavigate?: (label: string) => void;
