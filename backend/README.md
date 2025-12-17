@@ -38,3 +38,7 @@ npx prisma generate
 npx prisma migrate dev --name add_stats_models
 npx ts-node prisma/seed.ts
 ```
+
+## Caching
+
+The statistics endpoints use an in-memory cache (TTL 120s for analytics, 300s for followers) to reduce repeated aggregations. Keys include `brandId` and query params. For multi-instance deployments, consider Redis.

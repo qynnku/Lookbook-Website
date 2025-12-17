@@ -12,6 +12,19 @@ const prisma = new PrismaClient();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'bonjour-secret';
 
+// Simple in-memory cache with TTL
+type CacheEntry = { data: any; expiry: number };
+const cache = new Map<string, CacheEntry>();
+function getCache(key: string) {
+  const hit = cache.get(key);
+  if (hit && hit.expiry > Date.now()) return hit.data;
+  if (hit) cache.delete(key);
+  return null;
+}
+function setCache(key: string, data: any, ttlMs = 120_000) {
+  cache.set(key, { data, expiry: Date.now() + ttlMs });
+}
+
 // Multer config for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
@@ -348,6 +361,10 @@ app.get('/api/statistics/analytics', auth, async (req: AuthRequest, res: Respons
 
   const { platform = 'all', timeRange = 'year', metric = 'views' } = req.query as any;
 
+  const cacheKey = `analytics:${brandId}:${platform}:${timeRange}:${metric}`;
+  const cached = getCache(cacheKey);
+  if (cached) return res.json(cached);
+
   // Date range
   const now = new Date();
   let start = new Date(now);
@@ -405,22 +422,71 @@ app.get('/api/statistics/analytics', auth, async (req: AuthRequest, res: Respons
 
   result.metric = metricKey;
   result.timeRange = rangeKey;
+  setCache(cacheKey, result, 120_000);
   res.json(result);
 });
 
 // Get business performance data
 app.get('/api/statistics/performance', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  const { platform = 'all', months = '6', metric = 'engagementRate' } = req.query as any;
+
+  const monthsNum = Math.max(1, Math.min(12, parseInt(String(months)) || 6));
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() - (monthsNum - 1), 1);
+  const platforms = ['facebook', 'instagram', 'threads', 'tiktok', 'youtube'];
+  const targetPlatforms = platform === 'all' ? platforms : [String(platform)];
+
+  const rows = await prisma.platformStat.findMany({
+    where: { brandId, platform: { in: targetPlatforms }, date: { gte: start, lte: now } },
+    orderBy: { date: 'asc' },
+  });
+
+  // Aggregate by month
+  type Agg = { views: number; likes: number; comments: number; shares: number };
+  const byMonth = new Map<string, Agg>();
+  function monthKey(d: Date) { return `${d.getFullYear()}-${d.getMonth()+1}`; }
+  function monthLabel(d: Date) { return d.toLocaleString('en-US', { month: 'short' }).toUpperCase(); }
+  for (const r of rows) {
+    const d = new Date(r.date);
+    const key = monthKey(d);
+    const acc = byMonth.get(key) || { views: 0, likes: 0, comments: 0, shares: 0 };
+    acc.views += r.views;
+    acc.likes += r.likes;
+    acc.comments += r.comments;
+    acc.shares += r.shares;
+    byMonth.set(key, acc);
+  }
+
+  const labels: { key: string; date: Date }[] = [];
+  for (let i = monthsNum - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    labels.push({ key: monthKey(d), date: d });
+  }
+
+  // Choose metric: engagementRate or views
+  const monthlyData = labels.map(({ key, date }) => {
+    const agg = byMonth.get(key) || { views: 0, likes: 0, comments: 0, shares: 0 };
+    let value = 0;
+    if (metric === 'views') value = agg.views;
+    else {
+      const engagement = agg.likes + agg.comments + agg.shares;
+      value = agg.views > 0 ? (engagement / agg.views) * 100 : 0; // percentage
+    }
+    return { month: monthLabel(date), value: Math.round(value * 100) / 100 };
+  });
+
+  const last = monthlyData[monthlyData.length - 1]?.value || 0;
+  const prev = monthlyData[monthlyData.length - 2]?.value || 0;
+  const growth = prev ? ((last - prev) / prev) * 100 : 0;
+
   const data = {
-    currentRate: 8.06,
-    growth: 1.2,
-    monthlyData: [
-      { month: 'JAN', value: 68.574 },
-      { month: 'FEB', value: 116.119 },
-      { month: 'MAR', value: 91.433 },
-      { month: 'APR', value: 139.892 },
-      { month: 'MAY', value: 104.233 },
-      { month: 'JUN', value: 66.746 },
-    ],
+    currentRate: Math.round(last * 100) / 100,
+    growth: Math.round(growth * 10) / 10,
+    metric,
+    platform,
+    monthlyData,
   };
   res.json(data);
 });
@@ -429,6 +495,9 @@ app.get('/api/statistics/performance', auth, async (req: AuthRequest, res: Respo
 app.get('/api/statistics/followers', auth, async (req: AuthRequest, res: Response) => {
   const brandId = req.brandId;
   if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  const cacheKey = `followers:${brandId}`;
+  const cached = getCache(cacheKey);
+  if (cached) return res.json(cached);
   const platforms = ['facebook', 'instagram', 'threads', 'tiktok', 'youtube'];
   const data: any[] = [];
   for (const p of platforms) {
@@ -438,6 +507,7 @@ app.get('/api/statistics/followers', auth, async (req: AuthRequest, res: Respons
     const growth = prev && prev.followers ? ((count - prev.followers) / prev.followers) * 100 : 0;
     data.push({ platform: p, count, growth: Math.round(growth * 10) / 10, label: 'Lượt theo dõi' });
   }
+  setCache(cacheKey, data, 300_000);
   res.json(data);
 });
 
