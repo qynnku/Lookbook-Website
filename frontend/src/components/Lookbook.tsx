@@ -23,6 +23,7 @@ const img7 = "https://www.figma.com/api/mcp/asset/44ba12b8-4f51-4d72-805c-8c9859
 
 type LookbookPageProps = {
   onNavigate?: (label: string) => void;
+  pendingCount?: number;
 };
 
 type LookbookItem = {
@@ -37,7 +38,7 @@ type LookbookItem = {
   updatedAt: string;
 };
 
-const Lookbook: React.FC<LookbookPageProps> = ({ onNavigate }) => {
+const Lookbook: React.FC<LookbookPageProps> = ({ onNavigate, pendingCount = 0 }) => {
   const [selectedPlatform, setSelectedPlatform] = useState<'platform' | 'orders'>('platform');
   const [showStats, setShowStats] = useState<{ [key: number]: boolean }>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -232,12 +233,12 @@ const Lookbook: React.FC<LookbookPageProps> = ({ onNavigate }) => {
         {/* Combined Sidebar and Channel List */}
         <aside className="w-[336px] bg-white border-r border-[#d4d4d4] flex flex-col">
           <ChannelList />
-          <Sidebar activeLabel="Lookbook" onSelect={onNavigate} />
+          <Sidebar activeLabel="Lookbook" onSelect={onNavigate} pendingCount={pendingCount} />
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col w-[1104px]">
-        <TopNav />
+        <TopNav pendingCount={pendingCount} />
         
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto px-[30px] py-[10px]">

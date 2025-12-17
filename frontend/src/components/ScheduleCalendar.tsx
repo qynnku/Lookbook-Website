@@ -12,6 +12,7 @@ const threadIcon = 'https://www.figma.com/api/mcp/asset/587c0f19-1a1d-4a55-b6f0-
 
 type SchedulePostProps = {
   onNavigate?: (label: string) => void;
+  pendingCount?: number;
 };
 
 type Post = {
@@ -34,7 +35,7 @@ const daysOfWeek = [
   { label: 'Chủ nhật', day: 7 },
 ];
 
-const ScheduleCalendar: React.FC<SchedulePostProps> = ({ onNavigate }) => {
+const ScheduleCalendar: React.FC<SchedulePostProps> = ({ onNavigate, pendingCount = 0 }) => {
   const [posts, setPosts] = React.useState<Post[]>([]);
   const [currentWeek, setCurrentWeek] = React.useState(new Date());
   const [showMonthPicker, setShowMonthPicker] = React.useState(false);
@@ -152,10 +153,10 @@ const ScheduleCalendar: React.FC<SchedulePostProps> = ({ onNavigate }) => {
       <div className="flex-1 flex w-full">
         <aside className="w-[336px] bg-white border-r border-[#d4d4d4] flex flex-col">
           <ChannelList />
-          <Sidebar activeLabel="Lịch đăng" onSelect={onNavigate} />
+          <Sidebar activeLabel="Lịch đăng" onSelect={onNavigate} pendingCount={pendingCount} />
         </aside>
         <main className="flex-1 flex flex-col w-[1104px]">
-          <TopNav />
+          <TopNav pendingCount={pendingCount} />
           <div className="flex flex-col px-[21px] pb-[30px]">
             {/* Header with title and date picker */}
             <div className="flex items-start justify-between pt-4 pb-[30px] border-b border-[#d4d4d4]">

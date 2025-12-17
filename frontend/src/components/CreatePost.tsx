@@ -27,9 +27,10 @@ type Post = {
 
 type CreatePostProps = {
   onNavigate?: (label: string) => void;
+  pendingCount?: number;
 };
 
-const CreatePost: React.FC<CreatePostProps> = ({ onNavigate }) => {
+const CreatePost: React.FC<CreatePostProps> = ({ onNavigate, pendingCount = 0 }) => {
   const [posts, setPosts] = React.useState<Post[]>([]);
   const [selected, setSelected] = React.useState<Post | null>(null);
   const [isCreating, setIsCreating] = React.useState(false);
@@ -243,10 +244,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onNavigate }) => {
       <div className="flex-1 flex w-full">
         <aside className="w-[336px] bg-white border-r border-[#d4d4d4] flex flex-col">
           <ChannelList />
-          <Sidebar activeLabel="Tạo bài đăng" onSelect={onNavigate} />
+          <Sidebar activeLabel="Tạo bài đăng" onSelect={onNavigate} pendingCount={pendingCount} />
         </aside>
         <main className="flex-1 flex flex-col w-[1104px]">
-          <TopNav />
+          <TopNav pendingCount={pendingCount} />
           <div className="flex flex-col px-[32px] pb-[30px] gap-4">
             <div className="flex flex-col gap-1 pt-4">
               <h1 className="text-[20px] font-bold leading-[28px] text-black">Bài đăng</h1>

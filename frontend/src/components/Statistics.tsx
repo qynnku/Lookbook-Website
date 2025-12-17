@@ -22,9 +22,10 @@ const iconArrowUp = "https://www.figma.com/api/mcp/asset/6955eff9-cf2b-4e2d-9884
 
 type StatisticsProps = {
   onNavigate?: (label: string) => void;
+  pendingCount?: number;
 };
 
-const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
+const Statistics: React.FC<StatisticsProps> = ({ onNavigate, pendingCount = 0 }) => {
   const [platform, setPlatform] = useState('all');
   const [timeRange, setTimeRange] = useState('year');
   const [metric, setMetric] = useState('views');
@@ -72,12 +73,12 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
         {/* Combined Sidebar and Channel List */}
         <aside className="w-[336px] bg-white border-r border-[#d4d4d4] flex flex-col">
           <ChannelList />
-          <Sidebar activeLabel="Thống kê" onSelect={onNavigate} />
+          <Sidebar activeLabel="Thống kê" onSelect={onNavigate} pendingCount={pendingCount} />
         </aside>
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col w-[1104px]">
-          <TopNav />
+          <TopNav pendingCount={pendingCount} />
 
           {/* Content Area - Scrollable */}
           <div className="flex-1 overflow-y-auto bg-white">

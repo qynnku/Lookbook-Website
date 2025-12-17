@@ -10,20 +10,21 @@ import FooterBar from './FooterBar';
 
 type OverviewDashboardProps = {
   onNavigate?: (label: string) => void;
+  pendingCount?: number;
 };
 
-const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate }) => (
+const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate, pendingCount = 0 }) => (
   <div className="min-h-screen flex flex-col bg-white font-['Plus_Jakarta_Sans',sans-serif]">
     {/* Main Layout */}
     <div className="flex-1 flex w-full">
       {/* Combined Sidebar and Channel List */}
       <aside className="w-[336px] bg-white border-r border-[#d4d4d4] flex flex-col">
         <ChannelList />
-        <Sidebar activeLabel="Tổng quan" onSelect={onNavigate} />
+        <Sidebar activeLabel="Tổng quan" onSelect={onNavigate} pendingCount={pendingCount} />
       </aside>
       {/* Main Content */}
       <main className="flex-1 flex flex-col w-[1104px]">
-        <TopNav />
+        <TopNav pendingCount={pendingCount} />
         <DashboardHeader />
         <KpiCards />
         <WeeklyPlan />

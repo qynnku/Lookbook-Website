@@ -7,6 +7,8 @@ import { apiFetch } from '../utils/api';
 
 interface OrdersProps {
   onNavigate?: (label: string) => void;
+  pendingCount?: number;
+  setPendingCount?: (count: number) => void;
 }
 
 type OrderStatus = 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
@@ -59,7 +61,7 @@ const statusHoverColors: Record<OrderStatus, string> = {
   cancelled: 'hover:bg-[#ffc0c0] cursor-pointer',
 };
 
-const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
+const Orders: React.FC<OrdersProps> = ({ onNavigate, pendingCount = 0, setPendingCount }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [orders, setOrders] = useState<Order[]>([]);
@@ -68,7 +70,7 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [counts, setCounts] = useState({ total: 0, completed: 0, processing: 0, pending: 0 });
+  const [counts, setCounts] = useState({ total: 0, completed: 0, processing: 0, pending: pendingCount });
 
   const tokenEmail = getEmailFromToken();
 
@@ -132,6 +134,8 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
           processing: results.find((r) => r.key === 'processing')?.total || 0,
           pending: results.find((r) => r.key === 'pending')?.total || 0,
         });
+        // Update parent pending count
+        setPendingCount?.(results.find((r) => r.key === 'pending')?.total || 0);
       } catch (err) {
         // Keep existing counts on failure
       }

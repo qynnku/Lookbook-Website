@@ -4,7 +4,7 @@ import ChannelList from './ChannelList';
 import TopNav from './TopNav';
 import FooterBar from './FooterBar';
 
-const Livestream: React.FC<{ onNavigate?: (label: string) => void }> = ({ onNavigate }) => {
+const Livestream: React.FC<{ onNavigate?: (label: string) => void; pendingCount?: number }> = ({ onNavigate, pendingCount = 0 }) => {
   const [isLiveToggle, setIsLiveToggle] = useState(false);
   const [isEventToggle, setIsEventToggle] = useState(false);
 
@@ -57,11 +57,11 @@ const Livestream: React.FC<{ onNavigate?: (label: string) => void }> = ({ onNavi
       <div className="flex-1 flex w-full">
         <aside className="w-[336px] bg-white border-r border-[#d4d4d4] flex flex-col">
           <ChannelList />
-          <Sidebar activeLabel="Livestream" onSelect={onNavigate} />
+          <Sidebar activeLabel="Livestream" onSelect={onNavigate} pendingCount={pendingCount} />
         </aside>
 
         <main className="flex-1 flex flex-col w-[1104px]">
-          <TopNav />
+          <TopNav pendingCount={pendingCount} />
 
           <div className="flex-1 overflow-y-auto bg-white">
             <div className="max-w-[1104px] w-full mx-auto px-[30px] py-[18px] flex flex-col gap-[24px]">
