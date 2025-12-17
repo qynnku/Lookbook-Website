@@ -38,33 +38,33 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
         <main className="flex-1 flex flex-col w-[1104px]">
           <TopNav />
 
-          {/* Content Area */}
-          <div className="flex-1 overflow-y-auto bg-white">
-            {/* Tabs */}
-            <div className="border-b border-[#d4d4d4] flex h-[60px] items-center w-full">
-              <button
-                onClick={() => setActiveTab('platform')}
-                className={`flex items-center justify-center h-full px-[20px] w-[186px] border-r border-[#d4d4d4] transition-colors ${
-                  activeTab === 'platform' ? 'bg-[#e5e5e5]' : 'bg-white hover:bg-[#f5f5f5]'
-                }`}
-              >
-                <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-black">
-                  Nền tảng
-                </p>
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('orders')}
-                className={`flex items-center justify-center h-full px-[15px] w-[186px] border-r border-[#d4d4d4] transition-colors ${
-                  activeTab === 'orders' ? 'bg-[#e5e5e5]' : 'bg-white hover:bg-[#f5f5f5]'
-                }`}
-              >
-                <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-black">
-                  Đơn hàng
-                </p>
-              </button>
-            </div>
+          {/* Tabs */}
+          <div className="border-b border-[#d4d4d4] flex h-[60px] items-center w-full">
+            <button
+              onClick={() => setActiveTab('platform')}
+              className={`flex items-center justify-center h-full px-[20px] w-[186px] border-r border-[#d4d4d4] transition-colors ${
+                activeTab === 'platform' ? 'bg-[#e5e5e5]' : 'bg-white hover:bg-[#f5f5f5]'
+              }`}
+            >
+              <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-black">
+                Nền tảng
+              </p>
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`flex items-center justify-center h-full px-[15px] w-[186px] border-r border-[#d4d4d4] transition-colors ${
+                activeTab === 'orders' ? 'bg-[#e5e5e5]' : 'bg-white hover:bg-[#f5f5f5]'
+              }`}
+            >
+              <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-black">
+                Đơn hàng
+              </p>
+            </button>
+          </div>
 
+          {/* Content Area - Scrollable */}
+          <div className="flex-1 overflow-y-auto bg-white">
             <div className="flex flex-col items-center pb-[30px] pt-[10px] px-0 w-full">
             <div className="flex flex-col items-start pl-[21px] pr-[50px] py-0 w-full">
               <p className="font-['Plus_Jakarta_Sans',sans-serif] font-bold text-[20px] leading-[28px] text-black tracking-[0.004px]">
