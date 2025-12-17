@@ -4,6 +4,8 @@ import ChannelList from './ChannelList';
 import TopNav from './TopNav';
 import FooterBar from './FooterBar';
 import { apiFetch } from '../utils/api';
+import AnalyticsChart from './charts/AnalyticsChart';
+import PerformanceChart from './charts/PerformanceChart';
 
 // Suggestion/Notification images
 const imgSuggestion = "https://www.figma.com/api/mcp/asset/c1c09258-06cb-451b-a4b9-9403978ffe87";
@@ -28,6 +30,7 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
   const [metric, setMetric] = useState('views');
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [performance, setPerformance] = useState<any>(null);
 
   // Fetch analytics data when filters change
   useEffect(() => {
@@ -46,6 +49,21 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
 
     fetchAnalytics();
   }, [platform, timeRange, metric]);
+
+  // Fetch performance chart (monthly) based on selected platform
+  useEffect(() => {
+    const fetchPerf = async () => {
+      try {
+        const p = platform; // allow 'all'
+        const res = await apiFetch(`/statistics/performance?platform=${p}&months=6&metric=engagementRate`);
+        const data = await res.json();
+        setPerformance(data);
+      } catch (e) {
+        // silent
+      }
+    };
+    fetchPerf();
+  }, [platform]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-['Plus_Jakarta_Sans',sans-serif]">
@@ -142,31 +160,13 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
                     </div>
                   </div>
                   
-                  {/* Chart placeholder */}
+                  {/* Analytics line chart */}
                   <div className="flex items-center justify-center h-[280px] text-[#737373]">
                     {loading ? (
                       <p className="font-['Plus_Jakarta_Sans',sans-serif] text-[14px]">Đang tải dữ liệu...</p>
                     ) : analyticsData ? (
-                      <div className="w-full h-full p-4">
-                        <p className="font-['Plus_Jakarta_Sans',sans-serif] text-[12px] text-[#737373] mb-2">
-                          Hiển thị {
-                            metric === 'views' ? 'Lượt xem' :
-                            metric === 'likes' ? 'Lượt thích' :
-                            metric === 'comments' ? 'Bình luận' :
-                            metric === 'shares' ? 'Chia sẻ' :
-                            metric === 'follows' ? 'Theo dõi' :
-                            metric === 'engagement' ? 'Tương tác' : 'Tất cả'
-                          } - {platform === 'all' ? 'Tất cả nền tảng' : platform.charAt(0).toUpperCase() + platform.slice(1)} - {
-                            timeRange === '7days' ? '7 ngày qua' :
-                            timeRange === '30days' ? '30 ngày qua' :
-                            timeRange === '3months' ? '3 tháng qua' :
-                            timeRange === '6months' ? '6 tháng qua' :
-                            timeRange === 'year' ? '1 năm qua' : 'Tùy chỉnh'
-                          }
-                        </p>
-                        <div className="font-['Plus_Jakarta_Sans',sans-serif] text-[10px] text-[#a3a3a3]">
-                          Nền tảng: {Object.keys(analyticsData).filter(k => !['metric', 'timeRange'].includes(k)).join(', ')}
-                        </div>
+                      <div className="w-full h-full">
+                        <AnalyticsChart data={analyticsData} platform={platform} />
                       </div>
                     ) : (
                       <p className="font-['Plus_Jakarta_Sans',sans-serif] text-[14px]">Không có dữ liệu</p>
@@ -175,20 +175,18 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
                 </div>
 
                 {/* Business Performance Chart */}
-                <div className="bg-white flex gap-[37px] h-[227px] items-center px-[44px] py-[30px] rounded-[20px] shadow-[2.346px_2.346px_58.661px_0px_rgba(6,29,34,0.1)] w-[656px]">
+                <div className="bg-white flex gap-[24px] h-[227px] items-center px-[24px] py-[20px] rounded-[20px] shadow-[2.346px_2.346px_58.661px_0px_rgba(6,29,34,0.1)] w-[656px]">
                   <div className="flex flex-col gap-[22px] items-start rounded-[20px]">
                     <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-[#061d22] w-[162px]">
                       Hiệu quả kinh doanh
                     </p>
                     <div className="flex flex-col gap-[3.657px] items-center justify-center w-full">
                       <div className="font-['Plus_Jakarta_Sans',sans-serif] font-bold text-[20px] leading-[28px] text-[#061d22] tracking-[0.004px]">
-                        8.06%
+                        {performance ? `${performance.currentRate}${performance.metric === 'views' ? '' : '%'}` : '...' }
                       </div>
                       <div className="flex flex-col gap-[18.287px] items-center justify-center">
                         <div className="bg-[rgba(215,255,202,0.2)] border border-[#2cb100] flex gap-[2.743px] items-center justify-center px-[8px] py-[4px] rounded-[8px]">
-                          <p className="font-['Plus_Jakarta_Sans',sans-serif] font-normal text-[14px] leading-[22px] text-[#2cb100]">
-                            1.2%
-                          </p>
+                          <p className="font-['Plus_Jakarta_Sans',sans-serif] font-normal text-[14px] leading-[22px] text-[#2cb100]">{performance ? `${performance.growth}%` : '...'}</p>
                           <img src={iconArrowUp} alt="" className="w-[18.287px] h-[18.287px]" />
                         </div>
                         <p className="font-['Plus_Jakarta_Sans',sans-serif] font-normal text-[12px] leading-[18px] text-[#808080] tracking-[-0.0012px]">
@@ -197,15 +195,13 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Bar chart placeholder */}
-                  <div className="flex gap-[29px] items-end">
-                    <div className="bg-[rgba(201,203,205,0.3)] h-[68.574px] rounded-[10.972px] w-[30.173px]" />
-                    <div className="bg-[rgba(201,203,205,0.3)] h-[116.119px] rounded-[10.972px] w-[30.173px]" />
-                    <div className="bg-[rgba(201,203,205,0.3)] h-[91.433px] rounded-[10.972px] w-[30.173px]" />
-                    <div className="bg-gradient-to-br from-[rgba(154,103,202,0.24)] to-[rgba(154,103,202,1)] h-[139.892px] rounded-[10.972px] w-[30.173px]" />
-                    <div className="bg-[rgba(201,203,205,0.3)] h-[104.233px] rounded-[10.972px] w-[30.173px]" />
-                    <div className="bg-[rgba(201,203,205,0.3)] h-[66.746px] rounded-[10.972px] w-[30.173px]" />
+                  {/* Performance bar chart */}
+                  <div className="flex-1 h-full">
+                    {performance && performance.monthlyData ? (
+                      <PerformanceChart data={performance.monthlyData} />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-[#737373] text-sm">Đang tải biểu đồ...</div>
+                    )}
                   </div>
                 </div>
               </div>
