@@ -1,22 +1,18 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
+import ChannelList from './ChannelList';
 import TopNav from './TopNav';
 import FooterBar from './FooterBar';
-
-// Social media icons
-const iconFacebook = "https://www.figma.com/api/mcp/asset/ce44a301-0af1-4748-95da-6413d087c515";
-const iconInstagram = "https://www.figma.com/api/mcp/asset/dcfdee23-0f91-4dfc-99a6-4575ee0c08a0";
-const iconThreads = "https://www.figma.com/api/mcp/asset/e193e71c-aac8-4e2a-9445-069cf8966f9a";
 
 // Suggestion/Notification images
 const imgSuggestion = "https://www.figma.com/api/mcp/asset/c6a426bd-77d0-483a-b3da-96eacf154871";
 const imgNotification1 = "https://www.figma.com/api/mcp/asset/87767cc8-b7b8-48be-8aa9-02f72cfe1ab4";
 const imgNotification2 = "https://www.figma.com/api/mcp/asset/872ec0d4-de62-4760-8a15-6ba77028621a";
 
-// Social logos for follower counts
+// Social media logos
+const logoInstagram = "https://www.figma.com/api/mcp/asset/dcfdee23-0f91-4dfc-99a6-4575ee0c08a0";
 const logoFacebook = "https://www.figma.com/api/mcp/asset/dcab943f-27c5-4ea7-9904-bcf91efebb48";
 const logoThreads = "https://www.figma.com/api/mcp/asset/6ac25568-db6f-4ffb-a848-64d920568ea9";
-const logoInstagram = "https://www.figma.com/api/mcp/asset/dcfdee23-0f91-4dfc-99a6-4575ee0c08a0";
 
 // Arrow icon
 const iconArrowUp = "https://www.figma.com/api/mcp/asset/34117fe0-200a-4969-ab87-f3309a6f7693";
@@ -29,92 +25,47 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState<'platform' | 'orders'>('platform');
 
   return (
-    <div className="flex flex-col items-start relative size-full">
-      <div className="bg-white flex items-start w-full">
-        {/* Sidebar */}
-        <div className="bg-white flex flex-col gap-[10px] items-center w-[336px] border-r border-[#d4d4d4]">
-          <div className="bg-white border-b border-[#d4d4d4] flex h-[86px] items-center justify-center p-[10px] w-full">
-            <p className="font-['PoetsenOne',sans-serif] text-[30px] text-[#9a67ca]">
-              Bonjour
-            </p>
-          </div>
-          
-          {/* Channel List */}
-          <div className="flex flex-col gap-[8px] items-start w-[310px]">
-            <div className="bg-white flex gap-[4px] items-center p-[10px] w-full">
-              <div className="flex flex-col gap-[2px] items-start">
-                <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-[#1a0330]">
-                  Tất cả các kênh
-                </p>
-                <p className="font-['Plus_Jakarta_Sans',sans-serif] font-normal text-[14px] leading-[22px] text-[#737373]">
-                  Ruyich
-                </p>
-              </div>
-            </div>
-            
-            {/* Social Media Channels */}
-            <div className="flex flex-col gap-[11px] items-start w-[310px]">
-              <button className="bg-white flex gap-[4px] items-center p-[10px] w-full hover:bg-[#f9f5ff] transition-colors">
-                <div className="flex items-end px-0 py-[4px]">
-                  <img src={iconFacebook} alt="Facebook" className="w-[14px] h-[14px]" />
-                </div>
-                <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-[#1a0330]">
-                  Facebook
-                </p>
-              </button>
-              
-              <button className="bg-white flex gap-[4px] items-center p-[10px] w-full hover:bg-[#f9f5ff] transition-colors">
-                <div className="flex items-end px-0 py-[4px]">
-                  <img src={iconInstagram} alt="Instagram" className="w-[14px] h-[14px]" />
-                </div>
-                <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-[#1a0330]">
-                  Instagram
-                </p>
-              </button>
-              
-              <button className="bg-white flex gap-[4px] items-center p-[10px] w-full hover:bg-[#f9f5ff] transition-colors">
-                <div className="bg-[#080808] flex items-center justify-center p-[1px] rounded-[2px] w-[16px]">
-                  <img src={iconThreads} alt="Thread" className="w-[14px] h-[14px]" />
-                </div>
-                <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-[#1a0330]">
-                  Thread
-                </p>
-              </button>
-            </div>
-          </div>
-          
+    <div className="min-h-screen flex flex-col bg-white font-['Plus_Jakarta_Sans',sans-serif]">
+      {/* Main Layout */}
+      <div className="flex-1 flex w-full">
+        {/* Combined Sidebar and Channel List */}
+        <aside className="w-[336px] bg-white border-r border-[#d4d4d4] flex flex-col">
+          <ChannelList />
           <Sidebar activeLabel="Thống kê" onSelect={onNavigate} />
-        </div>
+        </aside>
 
         {/* Main Content */}
-        <div className="flex flex-col items-start w-[1104px]">
-          {/* Tabs */}
-          <div className="border-b border-[#d4d4d4] flex h-[86px] items-center px-0 py-[10px] w-full">
-            <button
-              onClick={() => setActiveTab('platform')}
-              className={`flex items-center justify-center px-[20px] py-[30px] w-[186px] border-r border-[#d4d4d4] transition-colors ${
-                activeTab === 'platform' ? 'bg-[#e5e5e5]' : 'bg-white hover:bg-[#f5f5f5]'
-              }`}
-            >
-              <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-black">
-                Nền tảng
-              </p>
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('orders')}
-              className={`flex items-center justify-center px-[15px] py-[30px] w-[186px] border-r border-[#d4d4d4] transition-colors ${
-                activeTab === 'orders' ? 'bg-[#e5e5e5]' : 'bg-white hover:bg-[#f5f5f5]'
-              }`}
-            >
-              <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-black">
-                Đơn hàng
-              </p>
-            </button>
-          </div>
+        <main className="flex-1 flex flex-col w-[1104px]">
+          <TopNav />
 
           {/* Content Area */}
-          <div className="flex flex-col items-center pb-[30px] pt-[10px] px-0 w-full">
+          <div className="flex-1 overflow-y-auto bg-white">
+            {/* Tabs */}
+            <div className="border-b border-[#d4d4d4] flex h-[60px] items-center w-full">
+              <button
+                onClick={() => setActiveTab('platform')}
+                className={`flex items-center justify-center h-full px-[20px] w-[186px] border-r border-[#d4d4d4] transition-colors ${
+                  activeTab === 'platform' ? 'bg-[#e5e5e5]' : 'bg-white hover:bg-[#f5f5f5]'
+                }`}
+              >
+                <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-black">
+                  Nền tảng
+                </p>
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('orders')}
+                className={`flex items-center justify-center h-full px-[15px] w-[186px] border-r border-[#d4d4d4] transition-colors ${
+                  activeTab === 'orders' ? 'bg-[#e5e5e5]' : 'bg-white hover:bg-[#f5f5f5]'
+                }`}
+              >
+                <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-black">
+                  Đơn hàng
+                </p>
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center pb-[30px] pt-[10px] px-0 w-full">
             <div className="flex flex-col items-start pl-[21px] pr-[50px] py-0 w-full">
               <p className="font-['Plus_Jakarta_Sans',sans-serif] font-bold text-[20px] leading-[28px] text-black tracking-[0.004px]">
                 Thống kê và phân tích số liệu
@@ -238,7 +189,7 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
                         <span className="font-bold">Thảo Nguyên</span> và <span className="font-bold">100 tài khoản khác</span> đã bày tỏ cảm xúc về bài đăng của bạn
                       </p>
                     </div>
-                    <img src={iconInstagram} alt="Instagram" className="w-[26px] h-[26px]" />
+                    <img src={logoInstagram} alt="Instagram" className="w-[26px] h-[26px]" />
                   </div>
                   
                   {/* Notification 2 */}
@@ -251,7 +202,7 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
                         <span className="font-bold">Nguyenpham_01</span>, <span className="font-bold">unni035</span> và <span className="font-bold">100 tài khoản khác</span> đã bày tỏ cảm xúc về bài đăng của bạn
                       </p>
                     </div>
-                    <img src={iconFacebook} alt="Facebook" className="w-[25px] h-[25px]" />
+                    <img src={logoFacebook} alt="Facebook" className="w-[25px] h-[25px]" />
                   </div>
                 </div>
 
@@ -328,10 +279,12 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
                 </div>
               </div>
             </div>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
       
+      {/* Footer */}
       <FooterBar />
     </div>
   );
