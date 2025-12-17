@@ -339,6 +339,123 @@ app.delete('/api/lookbooks/:id', auth, async (req: Request, res: Response) => {
   res.json({ message: 'Lookbook deleted successfully' });
 });
 
+// --- Statistics API ---
+
+// Get analytics data (engagement metrics by month)
+app.get('/api/statistics/analytics', auth, async (req: AuthRequest, res: Response) => {
+  // Mock data for Instagram and Facebook engagement
+  const data = {
+    instagram: [
+      { month: 'JAN', value: 1500 },
+      { month: 'FEB', value: 1800 },
+      { month: 'MAR', value: 2100 },
+      { month: 'APR', value: 1900 },
+      { month: 'MAY', value: 2300 },
+      { month: 'JUN', value: 2500 },
+      { month: 'JUL', value: 2200 },
+      { month: 'AUG', value: 1900 },
+      { month: 'SEP', value: 2000 },
+      { month: 'OCT', value: 2400 },
+      { month: 'NOV', value: 2600 },
+      { month: 'DEC', value: 2800 },
+    ],
+    facebook: [
+      { month: 'JAN', value: 1200 },
+      { month: 'FEB', value: 1400 },
+      { month: 'MAR', value: 1600 },
+      { month: 'APR', value: 1500 },
+      { month: 'MAY', value: 1700 },
+      { month: 'JUN', value: 1900 },
+      { month: 'JUL', value: 1800 },
+      { month: 'AUG', value: 1600 },
+      { month: 'SEP', value: 1700 },
+      { month: 'OCT', value: 1900 },
+      { month: 'NOV', value: 2100 },
+      { month: 'DEC', value: 2300 },
+    ],
+  };
+  res.json(data);
+});
+
+// Get business performance data
+app.get('/api/statistics/performance', auth, async (req: AuthRequest, res: Response) => {
+  const data = {
+    currentRate: 8.06,
+    growth: 1.2,
+    monthlyData: [
+      { month: 'JAN', value: 68.574 },
+      { month: 'FEB', value: 116.119 },
+      { month: 'MAR', value: 91.433 },
+      { month: 'APR', value: 139.892 },
+      { month: 'MAY', value: 104.233 },
+      { month: 'JUN', value: 66.746 },
+    ],
+  };
+  res.json(data);
+});
+
+// Get follower counts for all platforms
+app.get('/api/statistics/followers', auth, async (req: AuthRequest, res: Response) => {
+  const data = [
+    {
+      platform: 'facebook',
+      count: 11100,
+      growth: 1.2,
+      label: 'Lượt theo dõi',
+    },
+    {
+      platform: 'threads',
+      count: 11100,
+      growth: 1.2,
+      label: 'Lượt theo dõi',
+    },
+    {
+      platform: 'instagram',
+      count: 11100,
+      growth: 1.2,
+      label: 'Lượt theo dõi',
+    },
+  ];
+  res.json(data);
+});
+
+// Get notifications
+app.get('/api/statistics/notifications', auth, async (req: AuthRequest, res: Response) => {
+  const data = [
+    {
+      id: 1,
+      platform: 'instagram',
+      users: ['Thảo Nguyên', '100 tài khoản khác'],
+      action: 'đã bày tỏ cảm xúc về bài đăng của bạn',
+      imageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
+      timestamp: new Date().toISOString(),
+    },
+    {
+      id: 2,
+      platform: 'facebook',
+      users: ['Nguyenpham_01', 'unni035', '100 tài khoản khác'],
+      action: 'đã bày tỏ cảm xúc về bài đăng của bạn',
+      imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
+      timestamp: new Date().toISOString(),
+    },
+  ];
+  res.json(data);
+});
+
+// Get suggestions
+app.get('/api/statistics/suggestions', auth, async (req: AuthRequest, res: Response) => {
+  const data = [
+    {
+      id: 1,
+      platform: 'instagram',
+      title: 'Bạn muốn tiết kiệm thời gian và tăng lượng khách truy cập?',
+      imageUrl: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400',
+      link: '#',
+    },
+  ];
+  res.json(data);
+});
+
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
 });
