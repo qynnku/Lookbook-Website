@@ -3,6 +3,7 @@ import Sidebar from './Sidebar';
 import ChannelList from './ChannelList';
 import TopNav from './TopNav';
 import FooterBar from './FooterBar';
+import { apiFetch } from '../utils/api';
 
 const imgImage1 = "https://www.figma.com/api/mcp/asset/08f08cdf-b0b7-4be4-8716-78676eeec441";
 const img5 = "https://www.figma.com/api/mcp/asset/5f6a2d07-1f44-43a1-9c7b-f6737d527372";
@@ -72,12 +73,7 @@ const Lookbook: React.FC<LookbookPageProps> = ({ onNavigate, pendingCount = 0 })
 
   const loadLookbooks = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:4000/api/lookbooks', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const response = await apiFetch('/lookbooks');
       if (!response.ok) throw new Error('Failed to load lookbooks');
       const data = await response.json();
       setLookbooks(data);
@@ -100,12 +96,8 @@ const Lookbook: React.FC<LookbookPageProps> = ({ onNavigate, pendingCount = 0 })
         formData.append('gallery', file);
       });
 
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:4000/api/lookbooks', {
+      const response = await apiFetch('/lookbooks', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
         body: formData,
       });
 
@@ -184,11 +176,8 @@ const Lookbook: React.FC<LookbookPageProps> = ({ onNavigate, pendingCount = 0 })
       formData.append('removedGalleryImages', JSON.stringify(editData.removedGalleryImages));
 
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:4000/api/lookbooks/${editLookbook.id}`, {
+      const response = await apiFetch(`/lookbooks/${editLookbook.id}`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
         body: formData,
       });
 
@@ -208,11 +197,8 @@ const Lookbook: React.FC<LookbookPageProps> = ({ onNavigate, pendingCount = 0 })
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:4000/api/lookbooks/${editLookbook.id}`, {
+      const response = await apiFetch(`/lookbooks/${editLookbook.id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
       });
 
       if (!response.ok) throw new Error('Failed to delete lookbook');
