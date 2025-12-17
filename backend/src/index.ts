@@ -8,11 +8,28 @@ import path from 'path';
 import bcrypt from 'bcrypt';
 import { v2 as cloudinary } from 'cloudinary';
 import streamifier from 'streamifier';
+import nodemailer from 'nodemailer';
 
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'bonjour-secret';
+
+// Email configuration (using Gmail or SMTP_USER/SMTP_PASSWORD)
+const emailConfig = {
+  service: process.env.SMTP_SERVICE || 'gmail',
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : undefined,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
+  },
+};
+
+let transporter: nodemailer.Transporter | null = null;
+if (process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+  transporter = nodemailer.createTransport(emailConfig as any);
+}
 
 // Simple in-memory cache with TTL
 type CacheEntry = { data: any; expiry: number };
@@ -90,29 +107,63 @@ function auth(req: AuthRequest, res: Response, next: NextFunction) {
   }
 }
 
-// --- Signup ---
+// Helper: Generate 6-digit OTP
+function generateOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Helper: Send OTP email
+async function sendOTPEmail(to: string, otp: string, name: string): Promise<boolean> {
+  if (!transporter) {
+    console.warn('Email not configured. OTP:', otp);
+    return true; // Silently pass if email not configured for local dev
+  }
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_USER,
+      to,
+      subject: 'Xác nhận tài khoản Bonjour - Mã OTP',
+      html: `
+        <h2>Xin chào ${name}!</h2>
+        <p>Mã OTP xác nhận tài khoản của bạn là:</p>
+        <h1 style="color: #3772FF; letter-spacing: 2px;">${otp}</h1>
+        <p>Mã này sẽ hết hạn trong 10 phút.</p>
+        <p>Nếu bạn không yêu cầu xác nhận này, vui lòng bỏ qua email này.</p>
+      `,
+    });
+    return true;
+  } catch (err) {
+    console.error('Failed to send OTP:', err);
+    return false;
+  }
+}
+
+// --- Signup (send OTP) ---
 app.post('/api/signup', async (req: Request, res: Response) => {
   const { email, password, name } = req.body;
   if (!email || !password || !name) {
     return res.status(400).json({ error: 'Missing email, password, or name' });
   }
-  
+
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     return res.status(409).json({ error: 'Email already exists' });
   }
-  
+
   // Create brand for new user
   const brand = await prisma.brand.create({
     data: {
-      name: name,
+      name,
       avatarUrl: '/images/default-avatar.png',
       likes: 0,
       followers: 0,
     },
   });
-  
+
   const hashedPassword = await bcrypt.hash(password, 10);
+  const otp = generateOTP();
+  const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
   const user = await prisma.user.create({
     data: {
       email,
@@ -120,11 +171,73 @@ app.post('/api/signup', async (req: Request, res: Response) => {
       name,
       role: 'user',
       brandId: brand.id,
+      verified: false,
+      otpCode: otp,
+      otpExpiry,
     },
   });
-  
-  const token = jwt.sign({ email: user.email, role: user.role, brandId: brand.id }, JWT_SECRET, { expiresIn: '1d' });
-  res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, brandId: brand.id } });
+
+  // Send OTP email
+  const emailSent = await sendOTPEmail(email, otp, name);
+  if (!emailSent) {
+    return res.status(500).json({ error: 'Failed to send OTP email' });
+  }
+
+  res.status(201).json({
+    message: 'OTP sent to email. Please verify to complete signup.',
+    requiresOTP: true,
+    email,
+  });
+});
+
+// --- Verify OTP ---
+app.post('/api/verify-otp', async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    return res.status(400).json({ error: 'Missing email or OTP' });
+  }
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  if (user.verified) {
+    return res.status(409).json({ error: 'User already verified' });
+  }
+
+  if (!user.otpCode || !user.otpExpiry) {
+    return res.status(400).json({ error: 'OTP not found. Please signup again.' });
+  }
+
+  if (new Date() > user.otpExpiry) {
+    return res.status(400).json({ error: 'OTP expired. Please signup again.' });
+  }
+
+  if (user.otpCode !== otp) {
+    return res.status(401).json({ error: 'Invalid OTP' });
+  }
+
+  // Mark user as verified and clear OTP
+  const verified = await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      verified: true,
+      otpCode: null,
+      otpExpiry: null,
+    },
+  });
+
+  const token = jwt.sign(
+    { email: verified.email, role: verified.role, brandId: verified.brandId },
+    JWT_SECRET,
+    { expiresIn: '1d' }
+  );
+
+  res.json({
+    token,
+    user: { id: verified.id, email: verified.email, name: verified.name, brandId: verified.brandId },
+  });
 });
 
 // --- Login ---
