@@ -67,6 +67,11 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
+// --- Healthcheck ---
+app.get('/api/health', (_req: Request, res: Response) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
+});
+
 // --- Auth Middleware (extract brandId from token) ---
 interface AuthRequest extends Request {
   brandId?: number;

@@ -227,6 +227,70 @@ const CreatePost: React.FC<CreatePostProps> = ({ onNavigate, pendingCount = 0 })
     }
   };
 
+  const handleSchedule = async () => {
+    if (!form.title || !form.content) {
+      alert('Vui lòng nhập tiêu đề và nội dung');
+      return;
+    }
+    if (!form.scheduledAt) {
+      alert('Vui lòng chọn ngày giờ để lên lịch');
+      setShowDatePicker(true);
+      return;
+    }
+    setSaving(true);
+    try {
+      if (isCreating) {
+        const res = await apiFetch('/api/posts', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: form.title,
+            content: form.content,
+            tags: form.tags,
+            media,
+            status: 'SCHEDULED',
+            scheduledAt: new Date(form.scheduledAt).toISOString(),
+            platforms: selectedPlatforms.join(','),
+          }),
+        });
+        if (!res.ok) throw new Error('Schedule create failed');
+        const created = await res.json();
+        setPosts((prev) => [created, ...prev]);
+        setIsCreating(false);
+        setSelected(null);
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+        loadTags();
+      } else if (selected) {
+        const res = await apiFetch(`/api/posts/${selected.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            title: form.title,
+            content: form.content,
+            tags: form.tags,
+            media,
+            status: 'SCHEDULED',
+            scheduledAt: new Date(form.scheduledAt).toISOString(),
+            platforms: selectedPlatforms.join(','),
+          }),
+        });
+        if (!res.ok) throw new Error('Schedule update failed');
+        const updated = await res.json();
+        setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+        setSelected(null);
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+        loadTags();
+      }
+      setShowDatePicker(false);
+      onNavigate?.('Lịch đăng');
+    } catch (err) {
+      console.error(err);
+      alert('Lên lịch thất bại');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleCreateNew = () => {
     setIsCreating(true);
     setSelected(null);
@@ -681,6 +745,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onNavigate, pendingCount = 0 })
                 disabled={saving}
               >
                 Hủy
+              </button>
+              <button
+                className="px-4 py-2 rounded-[8px] border border-black text-[14px] hover:bg-gray-50 disabled:opacity-50"
+                onClick={handleSchedule}
+                disabled={saving}
+              >
+                Lên lịch
               </button>
               <button
                 className="px-4 py-2 rounded-[8px] bg-black text-white text-[14px]"
