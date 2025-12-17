@@ -34,6 +34,7 @@ model Brand {
   lookbooks Lookbook[]
   platformStats PlatformStat[]
   followerSnapshots FollowerSnapshot[]
+  orders    Order[]
 }
 
 model MetricSnapshot {
