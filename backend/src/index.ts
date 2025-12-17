@@ -548,6 +548,177 @@ app.get('/api/statistics/suggestions', auth, async (req: AuthRequest, res: Respo
   res.json(data);
 });
 
+// --- Orders ---
+app.get('/api/orders', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  const page = parseInt(String(req.query.page || '1')) || 1;
+  const pageSize = Math.min(50, Math.max(5, parseInt(String(req.query.pageSize || '10')) || 10));
+  const status = req.query.status ? String(req.query.status) : undefined;
+  const q = req.query.q ? String(req.query.q).toLowerCase() : '';
+
+  const where: any = { brandId };
+  if (status && status !== 'all') where.status = status;
+  if (q) {
+    where.OR = [
+      { code: { contains: q, mode: 'insensitive' } },
+      { customer: { contains: q, mode: 'insensitive' } },
+      { product: { contains: q, mode: 'insensitive' } },
+      { channel: { contains: q, mode: 'insensitive' } },
+    ];
+  }
+
+  const [total, items] = await Promise.all([
+    prisma.order.count({ where }),
+    prisma.order.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+
+  res.json({ page, pageSize, total, items });
+});
+
+// Orders summary counts for current brand
+app.get('/api/orders/summary', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+
+  const statuses = ['pending', 'processing', 'shipped', 'completed', 'cancelled'] as const;
+  const totalPromise = prisma.order.count({ where: { brandId } });
+  const countsPromises = statuses.map(s => prisma.order.count({ where: { brandId, status: s } }));
+  const [total, ...statusCounts] = await Promise.all([totalPromise, ...countsPromises]);
+  const out: any = { total };
+  statuses.forEach((s, idx) => (out[s] = statusCounts[idx]));
+  res.json(out);
+});
+
+// Get order by id
+app.get('/api/orders/:id', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  const id = Number(req.params.id);
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
+  const order = await prisma.order.findFirst({ where: { id, brandId } });
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  res.json(order);
+});
+
+// Get order by code
+app.get('/api/orders/code/:code', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  const code = String(req.params.code);
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  const order = await prisma.order.findFirst({ where: { code, brandId } });
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  res.json(order);
+});
+
+// Allowed statuses
+const ORDER_STATUSES = ['pending', 'processing', 'shipped', 'completed', 'cancelled'];
+app.get('/api/orders/statuses', auth, (_req: AuthRequest, res: Response) => {
+  res.json(ORDER_STATUSES);
+});
+
+// Create order (brand-scoped). If code missing, auto-generate unique code.
+app.post('/api/orders', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  const { code, customer, product, channel, status = 'pending', total, createdAt } = req.body || {};
+
+  if (!customer || !product || !channel || typeof total !== 'number') {
+    return res.status(400).json({ error: 'Missing customer, product, channel or total' });
+  }
+  if (!ORDER_STATUSES.includes(String(status))) {
+    return res.status(400).json({ error: 'Invalid status' });
+  }
+
+  async function generateCode() {
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    return `OD-${Date.now().toString().slice(-4)}${rand}`;
+  }
+
+  let finalCode = code && String(code).trim() ? String(code).trim() : '';
+  if (!finalCode) {
+    // try generating a unique code up to a few attempts
+    for (let i = 0; i < 5; i++) {
+      const c = await generateCode();
+      const exists = await prisma.order.findUnique({ where: { code: c } }).catch(() => null);
+      if (!exists) { finalCode = c; break; }
+    }
+  }
+  if (!finalCode) return res.status(500).json({ error: 'Failed to generate order code' });
+
+  try {
+    const created = await prisma.order.create({
+      data: {
+        brandId,
+        code: finalCode,
+        customer,
+        product,
+        channel,
+        status,
+        total,
+        createdAt: createdAt ? new Date(createdAt) : undefined,
+      },
+    });
+    res.status(201).json(created);
+  } catch (e: any) {
+    if (String(e?.message || '').includes('Unique constraint')) {
+      return res.status(409).json({ error: 'Order code already exists' });
+    }
+    res.status(500).json({ error: 'Failed to create order' });
+  }
+});
+
+// Update order
+app.patch('/api/orders/:id', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  const id = Number(req.params.id);
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
+
+  const existing = await prisma.order.findUnique({ where: { id } });
+  if (!existing || existing.brandId !== brandId) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+
+  const { customer, product, channel, status, total } = req.body || {};
+  if (status && !ORDER_STATUSES.includes(String(status))) {
+    return res.status(400).json({ error: 'Invalid status' });
+  }
+
+  const updated = await prisma.order.update({
+    where: { id },
+    data: {
+      customer: customer ?? existing.customer,
+      product: product ?? existing.product,
+      channel: channel ?? existing.channel,
+      status: status ?? existing.status,
+      total: typeof total === 'number' ? total : existing.total,
+    },
+  });
+  res.json(updated);
+});
+
+// Delete order
+app.delete('/api/orders/:id', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  const id = Number(req.params.id);
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
+
+  const existing = await prisma.order.findUnique({ where: { id } });
+  if (!existing || existing.brandId !== brandId) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+
+  await prisma.order.delete({ where: { id } });
+  res.json({ success: true });
+});
+
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
 });

@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ChannelList from './ChannelList';
 import Sidebar from './Sidebar';
 import TopNav from './TopNav';
 import FooterBar from './FooterBar';
+import { apiFetch } from '../utils/api';
 
 interface OrdersProps {
   onNavigate?: (label: string) => void;
@@ -11,24 +12,15 @@ interface OrdersProps {
 type OrderStatus = 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
 
 type Order = {
-  id: string;
+  id: number;
+  code: string;
   customer: string;
   product: string;
-  date: string;
+  createdAt: string;
   status: OrderStatus;
   total: number;
   channel: string;
 };
-
-const mockOrders: Order[] = [
-  { id: '#OD-1023', customer: 'Nguyễn Lan', product: 'Gói Lookbook Luxury', date: '2025-12-14', status: 'processing', total: 3200000, channel: 'Facebook' },
-  { id: '#OD-1022', customer: 'Trần Minh', product: 'Gói Livestream Pro', date: '2025-12-13', status: 'pending', total: 2100000, channel: 'Instagram' },
-  { id: '#OD-1021', customer: 'Phạm Thu', product: 'Gói Social Boost', date: '2025-12-12', status: 'completed', total: 1200000, channel: 'Threads' },
-  { id: '#OD-1020', customer: 'Lê Hoàng', product: 'Gói Lookbook Basic', date: '2025-12-12', status: 'shipped', total: 950000, channel: 'TikTok' },
-  { id: '#OD-1019', customer: 'Vũ Thảo', product: 'Gói Sự kiện mini', date: '2025-12-11', status: 'cancelled', total: 680000, channel: 'Facebook' },
-  { id: '#OD-1018', customer: 'Đào Hạnh', product: 'Gói Nội dung Premium', date: '2025-12-10', status: 'completed', total: 2450000, channel: 'Instagram' },
-  { id: '#OD-1017', customer: 'Bùi Nam', product: 'Gói Social Boost', date: '2025-12-09', status: 'processing', total: 1150000, channel: 'YouTube' },
-];
 
 function getEmailFromToken(): string | null {
   const token = localStorage.getItem('token');
@@ -62,26 +54,89 @@ const statusColors: Record<OrderStatus, string> = {
 const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [counts, setCounts] = useState({ total: 0, completed: 0, processing: 0, pending: 0 });
 
-  const canViewData = getEmailFromToken() === 'admin@dottie.vn';
+  const tokenEmail = getEmailFromToken();
 
-  const filteredOrders = useMemo(() => {
-    if (!canViewData) return [];
-    return mockOrders.filter((o) => {
-      const matchText = `${o.id} ${o.customer} ${o.product} ${o.channel}`.toLowerCase().includes(search.toLowerCase());
-      const matchStatus = statusFilter === 'all' ? true : o.status === statusFilter;
-      return matchText && matchStatus;
-    });
-  }, [search, statusFilter, canViewData]);
+  // Reset to first page when filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
 
-  const counts = useMemo(() => {
-    if (!canViewData) return { total: 0, completed: 0, processing: 0, pending: 0 };
-    const total = mockOrders.length;
-    const completed = mockOrders.filter((o) => o.status === 'completed').length;
-    const processing = mockOrders.filter((o) => o.status === 'processing').length;
-    const pending = mockOrders.filter((o) => o.status === 'pending').length;
-    return { total, completed, processing, pending };
-  }, [canViewData]);
+  // Load orders with pagination/search/filter
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const params = new URLSearchParams({
+          page: String(page),
+          pageSize: String(pageSize),
+        });
+        if (statusFilter !== 'all') params.append('status', statusFilter);
+        if (search.trim()) params.append('q', search.trim());
+
+        const resp = await apiFetch(`/orders?${params.toString()}`, { signal: controller.signal });
+        if (!resp.ok) throw new Error('Không thể tải danh sách đơn hàng');
+        const data = await resp.json();
+        setOrders(data.items || []);
+        setTotal(data.total || 0);
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+        setError(err.message || 'Có lỗi xảy ra');
+      } finally {
+        setLoading(false);
+      }
+    }, 250); // light debounce for search
+
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [page, pageSize, search, statusFilter]);
+
+  // Load summary counts (all/completed/processing/pending)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const statuses: (OrderStatus | 'all')[] = ['all', 'completed', 'processing', 'pending'];
+        const results = await Promise.all(statuses.map(async (s) => {
+          const params = new URLSearchParams({ page: '1', pageSize: '1' });
+          if (s !== 'all') params.append('status', s);
+          const resp = await apiFetch(`/orders?${params.toString()}`);
+          if (!resp.ok) throw new Error('Không thể tải thống kê đơn hàng');
+          const data = await resp.json();
+          return { key: s, total: data.total || 0 };
+        }));
+
+        if (cancelled) return;
+        setCounts({
+          total: results.find((r) => r.key === 'all')?.total || 0,
+          completed: results.find((r) => r.key === 'completed')?.total || 0,
+          processing: results.find((r) => r.key === 'processing')?.total || 0,
+          pending: results.find((r) => r.key === 'pending')?.total || 0,
+        });
+      } catch (err) {
+        // Keep existing counts on failure
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  const filteredOrders = useMemo(() => orders, [orders]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-['Plus_Jakarta_Sans',sans-serif]">
@@ -163,13 +218,19 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                     <div>Trạng thái</div>
                     <div className="text-right">Tổng</div>
                   </div>
-                  {filteredOrders.map((o) => (
+                  {loading && (
+                    <div className="text-center text-[#737373] text-[13px] py-[16px]">Đang tải đơn hàng...</div>
+                  )}
+                  {error && (
+                    <div className="text-center text-[#c53030] text-[13px] py-[16px]">{error}</div>
+                  )}
+                  {!loading && !error && filteredOrders.map((o) => (
                     <div key={o.id} className="grid grid-cols-7 items-center text-[13px] text-[#1f1f1f] px-[14px] py-[12px] border-t border-[#f0f0f0]">
-                      <div className="font-semibold text-[#1a0330]">{o.id}</div>
+                      <div className="font-semibold text-[#1a0330]">#{o.code}</div>
                       <div>{o.customer}</div>
                       <div>{o.product}</div>
                       <div>{o.channel}</div>
-                      <div>{o.date}</div>
+                      <div>{new Date(o.createdAt).toLocaleDateString('vi-VN')}</div>
                       <div>
                         <span className={`rounded-[12px] px-[10px] py-[4px] text-[12px] ${statusColors[o.status]}`}>
                           {statusLabels[o.status]}
@@ -178,12 +239,35 @@ const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                       <div className="text-right font-semibold">{o.total.toLocaleString('vi-VN')} đ</div>
                     </div>
                   ))}
-                  {filteredOrders.length === 0 && (
+                  {!loading && !error && filteredOrders.length === 0 && (
                     <div className="text-center text-[#737373] text-[13px] py-[16px]">
-                      {canViewData ? 'Không có đơn nào' : 'Tài khoản này chưa có dữ liệu đơn hàng'}
+                      {tokenEmail ? 'Không có đơn nào' : 'Vui lòng đăng nhập để xem đơn hàng'}
                     </div>
                   )}
                 </div>
+
+                {/* Pagination */}
+                {total > 0 && (
+                  <div className="flex items-center justify-between w-full text-[13px] text-[#404040]">
+                    <span>Trang {page} / {totalPages}</span>
+                    <div className="flex gap-[8px]">
+                      <button
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className={`border border-[#d4d4d4] rounded-[8px] px-[10px] py-[6px] ${page === 1 ? 'text-[#bfbfbf] cursor-not-allowed' : 'hover:bg-[#f5f5f5]'}`}
+                      >
+                        Trước
+                      </button>
+                      <button
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={page >= totalPages}
+                        className={`border border-[#d4d4d4] rounded-[8px] px-[10px] py-[6px] ${page >= totalPages ? 'text-[#bfbfbf] cursor-not-allowed' : 'hover:bg-[#f5f5f5]'}`}
+                      >
+                        Sau
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

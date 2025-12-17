@@ -103,6 +103,23 @@ model Lookbook {
   brand       Brand    @relation(fields: [brandId], references: [id])
 }
 
+model Order {
+  id         Int      @id @default(autoincrement())
+  brandId    Int
+  code       String   @unique
+  customer   String
+  product    String
+  channel    String
+  status     String
+  total      Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  brand      Brand    @relation(fields: [brandId], references: [id])
+
+  @@index([brandId, status])
+  @@index([brandId, createdAt])
+}
+
 // Daily per-platform metrics to power Statistics charts
 model PlatformStat {
   id        Int      @id @default(autoincrement())

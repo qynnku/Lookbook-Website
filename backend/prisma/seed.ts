@@ -9,6 +9,7 @@ async function main() {
   await prisma.metricSnapshot.deleteMany();
   await prisma.weeklyTask.deleteMany();
   await prisma.channelConnection.deleteMany();
+  await prisma.order.deleteMany();
   // New stats tables
   try { await prisma.platformStat.deleteMany(); } catch {}
   try { await prisma.followerSnapshot.deleteMany(); } catch {}
@@ -137,6 +138,32 @@ async function main() {
       pageVisits: 7340,
       contentScore: 8950,
     },
+  });
+
+  // Seed Orders for admin brand
+  await prisma.order.createMany({
+    data: [
+      { brandId: brand.id, code: 'OD-1023', customer: 'Nguyễn Lan', product: 'Gói Lookbook Luxury', channel: 'Facebook', status: 'processing', total: 3200000, createdAt: new Date('2025-12-14') },
+      { brandId: brand.id, code: 'OD-1022', customer: 'Trần Minh', product: 'Gói Livestream Pro', channel: 'Instagram', status: 'pending', total: 2100000, createdAt: new Date('2025-12-13') },
+      { brandId: brand.id, code: 'OD-1021', customer: 'Phạm Thu', product: 'Gói Social Boost', channel: 'Threads', status: 'completed', total: 1200000, createdAt: new Date('2025-12-12') },
+      { brandId: brand.id, code: 'OD-1020', customer: 'Lê Hoàng', product: 'Gói Lookbook Basic', channel: 'TikTok', status: 'shipped', total: 950000, createdAt: new Date('2025-12-12') },
+      { brandId: brand.id, code: 'OD-1019', customer: 'Vũ Thảo', product: 'Gói Sự kiện mini', channel: 'Facebook', status: 'cancelled', total: 680000, createdAt: new Date('2025-12-11') },
+      { brandId: brand.id, code: 'OD-1018', customer: 'Đào Hạnh', product: 'Gói Nội dung Premium', channel: 'Instagram', status: 'completed', total: 2450000, createdAt: new Date('2025-12-10') },
+      { brandId: brand.id, code: 'OD-1017', customer: 'Bùi Nam', product: 'Gói Social Boost', channel: 'YouTube', status: 'processing', total: 1150000, createdAt: new Date('2025-12-09') },
+      { brandId: brand.id, code: 'OD-1016', customer: 'Trịnh An', product: 'Gói Social Boost', channel: 'Facebook', status: 'processing', total: 990000, createdAt: new Date('2025-12-08') },
+      { brandId: brand.id, code: 'OD-1015', customer: 'Hồ Nhi', product: 'Gói Lookbook Luxury', channel: 'Instagram', status: 'completed', total: 3320000, createdAt: new Date('2025-12-07') },
+      { brandId: brand.id, code: 'OD-1014', customer: 'Lâm Quang', product: 'Gói Livestream Pro', channel: 'TikTok', status: 'pending', total: 1870000, createdAt: new Date('2025-12-06') },
+      { brandId: brand.id, code: 'OD-1013', customer: 'Tạ Giang', product: 'Gói Nội dung Premium', channel: 'YouTube', status: 'completed', total: 2560000, createdAt: new Date('2025-12-05') },
+      { brandId: brand.id, code: 'OD-1012', customer: 'Mai Thảo', product: 'Gói Sự kiện mini', channel: 'Facebook', status: 'shipped', total: 760000, createdAt: new Date('2025-12-04') },
+      { brandId: brand.id, code: 'OD-1011', customer: 'Ngô Phúc', product: 'Gói Lookbook Basic', channel: 'Threads', status: 'pending', total: 880000, createdAt: new Date('2025-12-03') },
+      { brandId: brand.id, code: 'OD-1010', customer: 'Thủy Tiên', product: 'Gói Social Boost', channel: 'Instagram', status: 'cancelled', total: 990000, createdAt: new Date('2025-12-02') },
+      { brandId: brand.id, code: 'OD-1009', customer: 'Phú An', product: 'Gói Livestream Pro', channel: 'Facebook', status: 'completed', total: 2140000, createdAt: new Date('2025-12-01') },
+      { brandId: brand.id, code: 'OD-1008', customer: 'Trúc Mai', product: 'Gói Lookbook Luxury', channel: 'YouTube', status: 'completed', total: 3420000, createdAt: new Date('2025-11-30') },
+      { brandId: brand.id, code: 'OD-1007', customer: 'Huỳnh Vy', product: 'Gói Nội dung Premium', channel: 'TikTok', status: 'processing', total: 2180000, createdAt: new Date('2025-11-29') },
+      { brandId: brand.id, code: 'OD-1006', customer: 'Đặng Ân', product: 'Gói Social Boost', channel: 'Threads', status: 'completed', total: 1250000, createdAt: new Date('2025-11-28') },
+      { brandId: brand.id, code: 'OD-1005', customer: 'Hà Châu', product: 'Gói Lookbook Basic', channel: 'Facebook', status: 'pending', total: 920000, createdAt: new Date('2025-11-27') },
+      { brandId: brand.id, code: 'OD-1004', customer: 'Phạm Tuấn', product: 'Gói Livestream Pro', channel: 'Instagram', status: 'shipped', total: 2050000, createdAt: new Date('2025-11-26') },
+    ],
   });
 
   // Seed Platform daily stats (last 365 days)
