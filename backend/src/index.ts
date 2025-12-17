@@ -165,6 +165,40 @@ async function sendOTPEmail(to: string, otp: string, name: string): Promise<bool
   }
 }
 
+// Helper: Send Password Reset OTP email
+async function sendPasswordResetEmail(to: string, otp: string): Promise<boolean> {
+  if (!transporter) {
+    console.warn('Email not configured. RESET OTP:', otp, 'for', to);
+    return true;
+  }
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_USER,
+      to,
+      subject: 'BONJOUR - Mã OTP đặt lại mật khẩu',
+      html: `
+        <div style="font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #f9fafb; padding: 40px 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 12px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h1 style="color: #1a0330; font-size: 22px; font-weight: 700; margin: 0 0 20px 0;">Đặt lại mật khẩu BONJOUR</h1>
+            <p style="color: #404040; font-size: 15px; line-height: 1.6; margin: 0 0 12px 0;">Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản BONJOUR.</p>
+            <p style="color: #404040; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">Vui lòng sử dụng mã OTP bên dưới để tiếp tục:</p>
+            <div style="background-color: #f5f5f5; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0;">
+              <p style="color: #737373; font-size: 12px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px;">Mã OTP</p>
+              <p style="color: #3772ff; font-size: 36px; font-weight: 700; margin: 0; letter-spacing: 4px; font-family: 'Monaco', 'Courier New', monospace;">${otp}</p>
+            </div>
+            <p style="color: #737373; font-size: 13px; margin: 16px 0; text-align: center;">Mã sẽ hết hạn trong <strong>10 phút</strong>. Nếu không phải bạn, hãy bỏ qua email này.</p>
+          </div>
+        </div>
+      `,
+    });
+    console.log('Sent reset OTP', otp, 'to', to);
+    return true;
+  } catch (err) {
+    console.error('Failed to send reset email', err);
+    return false;
+  }
+}
+
 // --- Signup (send OTP) ---
 app.post('/api/signup', async (req: Request, res: Response) => {
   const { email, password, name } = req.body;
@@ -181,7 +215,7 @@ app.post('/api/signup', async (req: Request, res: Response) => {
   const brand = await prisma.brand.create({
     data: {
       name,
-      avatarUrl: null,
+      avatarUrl: '', // store empty string so Prisma non-null constraint passes; user will upload later
       likes: 0,
       followers: 0,
     },
@@ -383,6 +417,45 @@ app.post('/api/login', async (req: Request, res: Response) => {
   
   const token = jwt.sign({ email: user.email, role: user.role, brandId: user.brandId }, JWT_SECRET, { expiresIn: '1d' });
   res.json({ token, user: { id: user.id, email: user.email, name: user.name, brandId: user.brandId } });
+});
+
+// --- Forgot Password: request OTP ---
+app.post('/api/password/forgot', async (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Missing email' });
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const otp = generateOTP();
+  const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+  await prisma.user.update({ where: { id: user.id }, data: { otpCode: otp, otpExpiry } });
+
+  const sent = await sendPasswordResetEmail(email, otp);
+  if (!sent) return res.status(500).json({ error: 'Failed to send OTP email' });
+  res.json({ requiresOTP: true, email });
+});
+
+// --- Forgot Password: reset with OTP ---
+app.post('/api/password/reset', async (req: Request, res: Response) => {
+  const { email, otp, newPassword } = req.body;
+  if (!email || !otp || !newPassword) {
+    return res.status(400).json({ error: 'Missing email, OTP or new password' });
+  }
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  if (!user.otpCode || !user.otpExpiry) return res.status(400).json({ error: 'No OTP request found' });
+  if (new Date() > user.otpExpiry) return res.status(400).json({ error: 'OTP expired' });
+  if (user.otpCode !== otp) return res.status(401).json({ error: 'Invalid OTP' });
+
+  const hashed = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { password: hashed, otpCode: null, otpExpiry: null },
+  });
+  res.json({ success: true });
 });
 
 // --- Get current brand ---

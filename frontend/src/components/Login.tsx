@@ -3,6 +3,7 @@ import { apiFetch } from '../utils/api';
 
 const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
   const [isSignup, setIsSignup] = useState(false);
+  const [isForgot, setIsForgot] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -10,13 +11,43 @@ const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
   const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      if (isSignup && !showOTP) {
+      if (isForgot && !showOTP) {
+        // Forgot: request OTP
+        const res = await apiFetch('/api/password/forgot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (res.ok && data.requiresOTP) {
+          setShowOTP(true);
+        } else {
+          setError(data.error || 'Không thể gửi OTP');
+        }
+      } else if (isForgot && showOTP) {
+        // Forgot: reset with OTP
+        const res = await apiFetch('/api/password/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, otp, newPassword }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setIsForgot(false);
+          setShowOTP(false);
+          setOtp('');
+          setNewPassword('');
+        } else {
+          setError(data.error || 'Đặt lại mật khẩu thất bại');
+        }
+      } else if (isSignup && !showOTP) {
         // Step 1: Send OTP
         const res = await apiFetch('/api/signup', {
           method: 'POST',
@@ -81,7 +112,7 @@ const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
           </div>
         )}
         
-        {!showOTP && isSignup && (
+        {!showOTP && isSignup && !isForgot && (
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-[#B1B5C3]">Tên</label>
             <input
@@ -108,6 +139,7 @@ const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
                 placeholder="Nhập email"
               />
             </div>
+            {!isForgot && (
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-[#B1B5C3]">Mật khẩu</label>
               <input
@@ -119,6 +151,7 @@ const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
                 placeholder="Nhập mật khẩu"
               />
             </div>
+            )}
           </>
         )}
 
@@ -137,6 +170,20 @@ const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
           </div>
         )}
 
+        {showOTP && isForgot && (
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-[#B1B5C3]">Mật khẩu mới</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              className="w-full rounded-lg border border-[#353945] bg-[#181A20] text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-[#777E90]"
+              required
+              placeholder="Nhập mật khẩu mới"
+            />
+          </div>
+        )}
+
         {error && <div className="text-red-500 text-sm text-center -mt-2">{error}</div>}
         
         <button
@@ -145,9 +192,9 @@ const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
           disabled={loading || (showOTP && otp.length !== 6)}
         >
           {loading ? (
-            showOTP ? 'Đang xác nhận...' : isSignup ? 'Đang đăng ký...' : 'Đang đăng nhập...'
+            showOTP ? (isForgot ? 'Đang đặt lại...' : 'Đang xác nhận...') : isSignup ? 'Đang đăng ký...' : isForgot ? 'Đang gửi OTP...' : 'Đang đăng nhập...'
           ) : (
-            showOTP ? 'Xác nhận' : isSignup ? 'Đăng ký' : 'Đăng nhập'
+            showOTP ? (isForgot ? 'Đổi mật khẩu' : 'Xác nhận') : isSignup ? 'Đăng ký' : isForgot ? 'Gửi OTP' : 'Đăng nhập'
           )}
         </button>
         
@@ -158,6 +205,7 @@ const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
               type="button"
               onClick={() => {
                 setIsSignup(!isSignup);
+                setIsForgot(false);
                 setError('');
               }}
               className="text-[#3772FF] hover:underline font-medium"
@@ -167,7 +215,22 @@ const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
           </div>
         )}
 
-        {showOTP && (
+        {!isSignup && !showOTP && (
+          <div className="text-center text-sm text-[#B1B5C3]">
+            <button
+              type="button"
+              onClick={() => {
+                setIsForgot(true);
+                setError('');
+              }}
+              className="text-[#3772FF] hover:underline font-medium"
+            >
+              Quên mật khẩu?
+            </button>
+          </div>
+        )}
+
+        {showOTP && !isForgot && (
           <button
             type="button"
             onClick={() => {
