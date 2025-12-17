@@ -12,13 +12,84 @@ const channels = [
 
 const ChannelList: React.FC = () => {
   const [selected, setSelected] = useState('all');
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const getUserInfo = () => {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return { email: payload.email, role: payload.role || 'user' };
+    } catch {
+      return null;
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    window.location.reload();
+  };
+
+  const userInfo = getUserInfo();
+
   return (
     <div className="flex flex-col gap-[10px] w-full">
       {/* Header */}
-      <div className="bg-white border-b border-[#d4d4d4] flex h-[86px] items-center justify-center p-[10px] w-full">
+      <div className="bg-white border-b border-[#d4d4d4] flex h-[86px] items-center justify-between px-[10px] w-full">
         <p style={{ fontFamily: 'PoetsenOne', fontSize: '30px', fontWeight: 400, lineHeight: 'normal', color: '#9A67CA' }}>
           Bonjour
         </p>
+        
+        {/* Profile Menu */}
+        {userInfo && (
+          <div className="relative">
+            <button
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              className="w-[40px] h-[40px] rounded-full bg-[#9A67CA] flex items-center justify-center text-white font-semibold text-[16px] hover:bg-[#8856b8] transition-colors"
+            >
+              {userInfo.email[0].toUpperCase()}
+            </button>
+            
+            {showProfileMenu && (
+              <div className="absolute top-full right-0 mt-2 bg-white border border-[#d4d4d4] rounded-[12px] shadow-lg min-w-[220px] z-50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#f0f0f0]">
+                  <p className="text-[14px] font-semibold text-[#1a0330] truncate">{userInfo.email}</p>
+                  <p className="text-[12px] text-[#737373] mt-1">
+                    {userInfo.role === 'admin' ? 'Quản trị viên' : 'Cộng tác viên'}
+                  </p>
+                </div>
+                
+                <div className="py-2">
+                  <button
+                    className="w-full px-4 py-2 text-left text-[14px] text-[#1a0330] hover:bg-[#f5f5f5] flex items-center gap-2"
+                    onClick={() => {/* TODO: Tìm người dùng */}}
+                  >
+                    <span>👤</span>
+                    <span>Tìm người dùng</span>
+                  </button>
+                  
+                  {userInfo.role === 'admin' && (
+                    <button
+                      className="w-full px-4 py-2 text-left text-[14px] text-[#1a0330] hover:bg-[#f5f5f5] flex items-center gap-2"
+                      onClick={() => {/* TODO: Thêm thành viên */}}
+                    >
+                      <span>➕</span>
+                      <span>Thêm thành viên</span>
+                    </button>
+                  )}
+                  
+                  <button
+                    className="w-full px-4 py-2 text-left text-[14px] text-[#c53030] hover:bg-[#ffe6e6] flex items-center gap-2"
+                    onClick={handleLogout}
+                  >
+                    <span>🚪</span>
+                    <span>Đăng xuất</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
       {/* All Channels Section */}

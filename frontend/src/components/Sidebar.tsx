@@ -26,15 +26,29 @@ type SidebarProps = {
   pendingCount?: number;
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ activeLabel = 'Tổng quan', onSelect, pendingCount = 0 }) => (
-  <div className="flex flex-col gap-[10px] items-center px-0 py-[18px] w-full">
-    <div className="bg-white flex items-center px-[40px] py-0 w-full">
-      <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-[#404040]">
-        MENU
-      </p>
-    </div>
-    <div className="flex flex-col gap-[4px] items-start w-[245px]">
-      {menu.map((item) => (
+const Sidebar: React.FC<SidebarProps> = ({ activeLabel = 'Tổng quan', onSelect, pendingCount = 0 }) => {
+  const getUserRole = () => {
+    const token = localStorage.getItem('token');
+    if (!token) return 'user';
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.role || 'user';
+    } catch {
+      return 'user';
+    }
+  };
+
+  const isAdmin = getUserRole() === 'admin';
+
+  return (
+    <div className="flex flex-col gap-[10px] items-center px-0 py-[18px] w-full">
+      <div className="bg-white flex items-center px-[40px] py-0 w-full">
+        <p className="font-['Plus_Jakarta_Sans',sans-serif] font-semibold text-[16px] leading-[24px] text-[#404040]">
+          MENU
+        </p>
+      </div>
+      <div className="flex flex-col gap-[4px] items-start w-[245px]">
+        {menu.filter(item => item.label !== 'Cài đặt' || isAdmin).map((item) => (
         <button
           key={item.label}
           onClick={() => onSelect?.(item.label)}
@@ -57,6 +71,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeLabel = 'Tổng quan', onSelect
       ))}
     </div>
   </div>
-);
+  );
+};
 
 export default Sidebar;

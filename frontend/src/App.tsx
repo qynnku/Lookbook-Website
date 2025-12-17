@@ -7,10 +7,11 @@ import Lookbook from './components/Lookbook';
 import Livestream from './components/Livestream';
 import Statistics from './components/Statistics';
 import Orders from './components/Orders';
+import Settings from './components/Settings';
 import Login from './components/Login';
 import { apiFetch } from './utils/api';
 
-type PageKey = 'overview' | 'create-post' | 'schedule' | 'lookbook' | 'livestream' | 'statistics' | 'orders';
+type PageKey = 'overview' | 'create-post' | 'schedule' | 'lookbook' | 'livestream' | 'statistics' | 'orders' | 'settings';
 
 function App() {
   const [loggedIn, setLoggedIn] = React.useState(() => !!localStorage.getItem('token'));
@@ -64,6 +65,9 @@ function App() {
     if (label === 'Quản lý đơn hàng') {
       setPage('orders');
     }
+    if (label === 'Cài đặt') {
+      setPage('settings');
+    }
   };
 
   if (!loggedIn) return <Login onLogin={handleLogin} />;
@@ -74,6 +78,7 @@ function App() {
   if (page === 'livestream') return <Livestream onNavigate={handleNavigate} pendingCount={pendingCount} />;
   if (page === 'statistics') return <Statistics onNavigate={handleNavigate} pendingCount={pendingCount} />;
   if (page === 'orders') return <Orders onNavigate={handleNavigate} pendingCount={pendingCount} setPendingCount={setPendingCount} />;
+  if (page === 'settings') return <Settings onNavigate={handleNavigate} pendingCount={pendingCount} />;
   return <OverviewDashboard onNavigate={handleNavigate} pendingCount={pendingCount} />;
 }
 

@@ -267,6 +267,103 @@ app.post('/api/verify-otp', async (req: Request, res: Response) => {
   });
 });
 
+// --- Team Management ---
+
+// Get all team members for the brand
+app.get('/api/team', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  
+  const members = await prisma.user.findMany({
+    where: { brandId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      verified: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+  
+  res.json(members);
+});
+
+// Invite team member (admin only)
+app.post('/api/team/invite', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  
+  // Check if requester is admin
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token' });
+  const decoded = jwt.verify(token, JWT_SECRET) as any;
+  if (decoded.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  
+  const { email, name, role = 'user' } = req.body;
+  if (!email || !name) {
+    return res.status(400).json({ error: 'Missing email or name' });
+  }
+  
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    return res.status(409).json({ error: 'Email already exists' });
+  }
+  
+  // Generate temporary password
+  const tempPassword = Math.random().toString(36).slice(-8);
+  const hashedPassword = await bcrypt.hash(tempPassword, 10);
+  
+  const newMember = await prisma.user.create({
+    data: {
+      email,
+      name,
+      password: hashedPassword,
+      role,
+      brandId,
+      verified: true,
+    },
+  });
+  
+  // TODO: Send invite email with temp password
+  
+  res.status(201).json({
+    member: { id: newMember.id, email: newMember.email, name: newMember.name, role: newMember.role },
+    tempPassword, // In production, send this via email instead
+  });
+});
+
+// Remove team member (admin only)
+app.delete('/api/team/:id', auth, async (req: AuthRequest, res: Response) => {
+  const brandId = req.brandId;
+  if (!brandId) return res.status(401).json({ error: 'Unauthorized' });
+  
+  // Check if requester is admin
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token' });
+  const decoded = jwt.verify(token, JWT_SECRET) as any;
+  if (decoded.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  
+  const userId = Number(req.params.id);
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  
+  if (!user || user.brandId !== brandId) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  
+  if (user.role === 'admin') {
+    return res.status(403).json({ error: 'Cannot remove admin' });
+  }
+  
+  await prisma.user.delete({ where: { id: userId } });
+  res.json({ success: true });
+});
+
 // --- Login ---
 app.post('/api/login', async (req: Request, res: Response) => {
   const { email, password } = req.body;
