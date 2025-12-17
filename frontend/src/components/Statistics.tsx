@@ -34,7 +34,8 @@ const Statistics: React.FC<StatisticsProps> = ({ onNavigate }) => {
     const fetchAnalytics = async () => {
       setLoading(true);
       try {
-        const data = await apiFetch(`/statistics/analytics?platform=${platform}&timeRange=${timeRange}&metric=${metric}`);
+        const res = await apiFetch(`/statistics/analytics?platform=${platform}&timeRange=${timeRange}&metric=${metric}`);
+        const data = await res.json();
         setAnalyticsData(data);
       } catch (error) {
         console.error('Failed to fetch analytics:', error);
